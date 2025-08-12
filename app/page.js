@@ -25,20 +25,76 @@ import {
   formatCurrency,
   formatNumber,
   getGrowthColor,
+  analyticsData, // Declare the variable here
 } from "@/lib/database"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState("7d")
+  const [selectedStore, setSelectedStore] = useState("all")
   const analytics = getOverallAnalytics()
   const topProducts = getTopProducts()
+
+  // Filter data based on selected store
+  const getFilteredAnalytics = () => {
+    if (selectedStore === "all") {
+      return analytics
+    }
+
+    const storeId = Number.parseInt(selectedStore)
+    const storeAnalytics = analyticsData.byStore[storeId]
+
+    return {
+      totalRevenue: storeAnalytics?.revenue || 0,
+      totalTransactions: storeAnalytics?.transactions || 0,
+      avgOrderValue: Math.round((storeAnalytics?.revenue || 0) / (storeAnalytics?.transactions || 1)),
+      monthlyGrowth: storeAnalytics?.growth || 0,
+    }
+  }
+
+  const getFilteredStores = () => {
+    if (selectedStore === "all") {
+      return stores
+    }
+    return stores.filter((store) => store.id === Number.parseInt(selectedStore))
+  }
+
+  const filteredAnalytics = getFilteredAnalytics()
+  const filteredStores = getFilteredStores()
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Minimarket Sales Dashboard</h1>
-          <p className="text-gray-600">Overview semua toko - Real-time analytics dan insights</p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Minimarket Sales Dashboard</h1>
+              <p className="text-gray-600">
+                {selectedStore === "all"
+                  ? "Overview semua toko - Real-time analytics dan insights"
+                  : `Overview ${stores.find((s) => s.id === Number.parseInt(selectedStore))?.name} - Real-time analytics dan insights`}
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex flex-col">
+                <label className="text-sm font-medium text-gray-700 mb-1">Filter Toko:</label>
+                <Select value={selectedStore} onValueChange={setSelectedStore}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Pilih toko" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Toko</SelectItem>
+                    {stores.map((store) => (
+                      <SelectItem key={store.id} value={store.id.toString()}>
+                        {store.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Key Metrics */}
@@ -51,11 +107,11 @@ export default function Dashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{formatCurrency(analytics.totalRevenue)}</div>
+              <div className="text-2xl font-bold text-gray-900">{formatCurrency(filteredAnalytics.totalRevenue)}</div>
               <div className="flex items-center mt-2">
                 <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                <span className="text-sm text-green-600">+12.5%</span>
-                <span className="text-sm text-gray-500 ml-1">vs last week</span>
+                <span className="text-sm text-green-600">+{filteredAnalytics.monthlyGrowth.toFixed(1)}%</span>
+                <span className="text-sm text-gray-500 ml-1">vs last month</span>
               </div>
             </CardContent>
           </Card>
@@ -68,11 +124,13 @@ export default function Dashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{formatNumber(analytics.totalTransactions)}</div>
+              <div className="text-2xl font-bold text-gray-900">
+                {formatNumber(filteredAnalytics.totalTransactions)}
+              </div>
               <div className="flex items-center mt-2">
                 <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
                 <span className="text-sm text-green-600">+8.2%</span>
-                <span className="text-sm text-gray-500 ml-1">vs last week</span>
+                <span className="text-sm text-gray-500 ml-1">vs last month</span>
               </div>
             </CardContent>
           </Card>
@@ -85,11 +143,11 @@ export default function Dashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{formatCurrency(analytics.avgOrderValue)}</div>
+              <div className="text-2xl font-bold text-gray-900">{formatCurrency(filteredAnalytics.avgOrderValue)}</div>
               <div className="flex items-center mt-2">
                 <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
                 <span className="text-sm text-green-600">+5.1%</span>
-                <span className="text-sm text-gray-500 ml-1">vs last week</span>
+                <span className="text-sm text-gray-500 ml-1">vs last month</span>
               </div>
             </CardContent>
           </Card>
@@ -97,17 +155,21 @@ export default function Dashboard() {
           <Card className="bg-white border-blue-200">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium text-gray-600">Active Stores</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-600">
+                  {selectedStore === "all" ? "Active Stores" : "Store Status"}
+                </CardTitle>
                 <Store className="w-4 h-4 text-blue-600" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-gray-900">
-                {stores.filter((s) => s.status === "active").length}/7
+                {selectedStore === "all" ? `${stores.filter((s) => s.status === "active").length}/7` : "Active"}
               </div>
               <div className="flex items-center mt-2">
                 <Activity className="w-4 h-4 text-green-500 mr-1" />
-                <span className="text-sm text-green-600">All operational</span>
+                <span className="text-sm text-green-600">
+                  {selectedStore === "all" ? "All operational" : "Operational"}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -166,7 +228,9 @@ export default function Dashboard() {
         {/* Store Overview */}
         <Card className="bg-white">
           <CardHeader>
-            <CardTitle className="text-gray-900">Store Overview</CardTitle>
+            <CardTitle className="text-gray-900">
+              {selectedStore === "all" ? "Store Overview" : "Store Details"}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -182,7 +246,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {stores.map((store) => (
+                  {filteredStores.map((store) => (
                     <tr key={store.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="py-3 px-4">
                         <div>
@@ -199,7 +263,7 @@ export default function Dashboard() {
                         </Badge>
                       </td>
                       <td className="py-3 px-4 font-medium text-gray-900">{formatCurrency(store.dailyRevenue)}</td>
-                      <td className="py-3 px-4 text-gray-600">{formatNumber(store.dailyTransactions)}</td>
+                      <td className="py-3 px-4 text-gray-600">{formatNumber(Math.round(store.dailyTransactions))}</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center">
                           {store.growth > 0 ? (
