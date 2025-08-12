@@ -25,12 +25,13 @@ import {
   formatCurrency,
   formatNumber,
   getGrowthColor,
-  analyticsData, // Declare the variable here
+  analyticsData,
+  getRevenueTrendData,
 } from "@/lib/database"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function Dashboard() {
-  const [selectedPeriod, setSelectedPeriod] = useState("7d")
+  const [selectedPeriod, setSelectedPeriod] = useState("1w")
   const [selectedStore, setSelectedStore] = useState("all")
   const analytics = getOverallAnalytics()
   const topProducts = getTopProducts()
@@ -61,6 +62,7 @@ export default function Dashboard() {
 
   const filteredAnalytics = getFilteredAnalytics()
   const filteredStores = getFilteredStores()
+  const revenueTrend = getRevenueTrendData(selectedPeriod)
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -180,16 +182,30 @@ export default function Dashboard() {
           {/* Revenue Trend */}
           <Card className="bg-white">
             <CardHeader>
-              <CardTitle className="text-gray-900">Revenue Trend (7 Days)</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-gray-900">{revenueTrend.title}</CardTitle>
+                <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1w">1 Minggu</SelectItem>
+                    <SelectItem value="1m">1 Bulan</SelectItem>
+                    <SelectItem value="1y">1 Tahun</SelectItem>
+                    <SelectItem value="2y">2 Tahun</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="h-64 flex items-end justify-between space-x-2">
-                {[65, 78, 82, 95, 88, 92, 105].map((height, index) => (
+                {revenueTrend.data.map((height, index) => (
                   <div key={index} className="flex flex-col items-center flex-1">
-                    <div className="w-full bg-blue-500 rounded-t" style={{ height: `${height}%` }} />
-                    <span className="text-xs text-gray-500 mt-2">
-                      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][index]}
-                    </span>
+                    <div
+                      className="w-full bg-blue-500 rounded-t transition-all duration-300 ease-in-out"
+                      style={{ height: `${height}%` }}
+                    />
+                    <span className="text-xs text-gray-500 mt-2 text-center">{revenueTrend.labels[index]}</span>
                   </div>
                 ))}
               </div>
