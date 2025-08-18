@@ -1,27 +1,79 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Input } from "@/components/ui/input"
-import Link from "next/link"
-import { TrendingUp, ShoppingCart, DollarSign, BarChart3, ArrowRight, Send, Bot } from "lucide-react"
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Input } from "@/components/ui/input";
+import Link from "next/link";
+import {
+  TrendingUp,
+  TrendingDown,
+  ShoppingCart,
+  DollarSign,
+  BarChart3,
+  ArrowRight,
+  Send,
+  Bot,
+} from "lucide-react";
 import {
   stores,
   getOverallAnalytics,
   getTopProducts,
   formatCurrency,
   formatNumber,
+  getGrowthColor,
   analyticsData,
-} from "@/lib/database"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+  getRevenueTrendData,
+} from "@/lib/database";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function Dashboard() {
-  const [selectedPeriod, setSelectedPeriod] = useState("1w")
-  const [selectedStore, setSelectedStore] = useState("all")
-  const [selectedCategory, setSelectedCategory] = useState("all")
-  const [chatInput, setChatInput] = useState("")
+  const [selectedPeriod, setSelectedPeriod] = useState("1w");
+  const [selectedStore, setSelectedStore] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [chatInput, setChatInput] = useState("");
+  const analytics = getOverallAnalytics();
+  const topProducts = getTopProducts();
+
+  // Filter data based on selected store
+  const getFilteredAnalytics = () => {
+    if (selectedStore === "all") {
+      return analytics;
+    }
+
+    const storeId = Number.parseInt(selectedStore);
+    const storeAnalytics = analyticsData.byStore[storeId];
+
+    return {
+      totalRevenue: storeAnalytics?.revenue || 0,
+      totalTransactions: storeAnalytics?.transactions || 0,
+      avgOrderValue: Math.round(
+        (storeAnalytics?.revenue || 0) / (storeAnalytics?.transactions || 1)
+      ),
+      monthlyGrowth: storeAnalytics?.growth || 0,
+    };
+  };
+
+  const getFilteredStores = () => {
+    if (selectedStore === "all") {
+      return stores;
+    }
+    return stores.filter(
+      (store) => store.id === Number.parseInt(selectedStore)
+    );
+  };
+
+  const filteredAnalytics = getFilteredAnalytics();
+  const filteredStores = getFilteredStores();
+  const revenueTrend = getRevenueTrendData(selectedPeriod);
 
   const [promotions, setPromotions] = useState([
     {
@@ -99,10 +151,7 @@ export default function Dashboard() {
       potentialRevenue: 2800000,
       status: "aktif",
     },
-  ])
-
-  const analytics = getOverallAnalytics()
-  const topProducts = getTopProducts()
+  ]);
 
   const categories = [
     "Makanan & Minuman",
@@ -110,7 +159,7 @@ export default function Dashboard() {
     "Kesehatan & Kecantikan",
     "Elektronik",
     "Pakaian & Aksesoris",
-  ]
+  ];
 
   const salesChartData = [
     { label: "5k", value: 20 },
@@ -125,20 +174,23 @@ export default function Dashboard() {
     { label: "50k", value: 60 },
     { label: "55k", value: 55 },
     { label: "60k", value: 50 },
-  ]
+  ];
 
   const togglePromotionStatus = (promotionId) => {
     setPromotions(
       promotions.map((promotion) =>
         promotion.id === promotionId
-          ? { ...promotion, status: promotion.status === "aktif" ? "non aktif" : "aktif" }
-          : promotion,
-      ),
-    )
-  }
+          ? {
+              ...promotion,
+              status: promotion.status === "aktif" ? "non aktif" : "aktif",
+            }
+          : promotion
+      )
+    );
+  };
 
   const getFilteredPromotions = () => {
-    let filtered = promotions
+    let filtered = promotions;
 
     // Filter by category
     if (selectedCategory !== "all") {
@@ -146,10 +198,12 @@ export default function Dashboard() {
         const categoryMap = {
           "Makanan & Minuman": ["Makanan", "Minuman"],
           "Kebutuhan Rumah Tangga": ["Sembako", "Kebersihan"],
-        }
-        const matchingCategories = categoryMap[selectedCategory] || [selectedCategory]
-        return matchingCategories.includes(promotion.category)
-      })
+        };
+        const matchingCategories = categoryMap[selectedCategory] || [
+          selectedCategory,
+        ];
+        return matchingCategories.includes(promotion.category);
+      });
     }
 
     // Filter by store (placeholder logic - in real app would filter by store-specific products)
@@ -158,49 +212,35 @@ export default function Dashboard() {
       // In a real app, you'd filter based on store-specific inventory
     }
 
-    return filtered.slice(0, 5) // Show top 5
-  }
+    return filtered.slice(0, 5); // Show top 5
+  };
 
   const getStatusBadge = (status, promotionId) => {
-    const isActive = status === "aktif"
+    const isActive = status === "aktif";
     return (
       <Button
         variant="outline"
         size="sm"
         onClick={() => togglePromotionStatus(promotionId)}
-        className={`${isActive ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-gray-100 text-gray-800 hover:bg-gray-200"}`}
+        className={`${
+          isActive
+            ? "bg-green-100 text-green-800 hover:bg-green-200"
+            : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+        }`}
       >
         {isActive ? "Aktif" : "Non Aktif"}
       </Button>
-    )
-  }
+    );
+  };
 
-  // Filter data based on selected store
-  const getFilteredAnalytics = () => {
-    if (selectedStore === "all") {
-      return analytics
-    }
-
-    const storeId = Number.parseInt(selectedStore)
-    const storeAnalytics = analyticsData.byStore[storeId]
-
-    return {
-      totalRevenue: storeAnalytics?.revenue || 0,
-      totalTransactions: storeAnalytics?.transactions || 0,
-      avgOrderValue: Math.round((storeAnalytics?.revenue || 0) / (storeAnalytics?.transactions || 1)),
-      monthlyGrowth: storeAnalytics?.growth || 0,
-    }
-  }
-
-  const filteredAnalytics = getFilteredAnalytics()
-  const filteredPromotions = getFilteredPromotions()
+  const filteredPromotions = getFilteredPromotions();
 
   const handleChatSubmit = (e) => {
-    e.preventDefault()
+    e.preventDefault();
     // Handle chat submission logic here
-    console.log("Chat message:", chatInput)
-    setChatInput("")
-  }
+    console.log("Chat message:", chatInput);
+    setChatInput("");
+  };
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
@@ -208,11 +248,16 @@ export default function Dashboard() {
         <SidebarTrigger />
         <div className="flex flex-1 items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Dashboard Overview</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Dashboard Overview
+            </h1>
             <p className="text-muted-foreground">
               {selectedStore === "all"
                 ? "Real-time analytics untuk semua toko"
-                : `Analytics untuk ${stores.find((s) => s.id === Number.parseInt(selectedStore))?.name}`}
+                : `Analytics untuk ${
+                    stores.find((s) => s.id === Number.parseInt(selectedStore))
+                      ?.name
+                  }`}
             </p>
           </div>
         </div>
@@ -276,25 +321,33 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Total Revenue
+                </CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(filteredAnalytics.totalRevenue)}</div>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(filteredAnalytics.totalRevenue)}
+                </div>
                 <div className="flex items-center text-xs text-muted-foreground">
-                  <TrendingUp className="mr-1 h-4 w-4 text-green-500" />+{filteredAnalytics.monthlyGrowth.toFixed(1)}%
-                  vs last month
+                  <TrendingUp className="mr-1 h-4 w-4 text-green-500" />+
+                  {filteredAnalytics.monthlyGrowth.toFixed(1)}% vs last month
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Total Transactions
+                </CardTitle>
                 <ShoppingCart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatNumber(filteredAnalytics.totalTransactions)}</div>
+                <div className="text-2xl font-bold">
+                  {formatNumber(filteredAnalytics.totalTransactions)}
+                </div>
                 <div className="flex items-center text-xs text-muted-foreground">
                   <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
                   +9.2% vs last month
@@ -304,11 +357,15 @@ export default function Dashboard() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Average Order Value</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Average Order Value
+                </CardTitle>
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(filteredAnalytics.avgOrderValue)}</div>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(filteredAnalytics.avgOrderValue)}
+                </div>
                 <div className="flex items-center text-xs text-muted-foreground">
                   <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
                   +2.2% vs last month
@@ -334,17 +391,24 @@ export default function Dashboard() {
                       <Bot className="h-4 w-4 text-white" />
                     </div>
                     <p className="text-sm text-blue-900">
-                      Produk xx akan terdeteksi melonjak pada bulan ini. Promosi akan meningkatkan keuntungan kita.
+                      Produk xx akan terdeteksi melonjak pada bulan ini. Promosi
+                      akan meningkatkan keuntungan kita.
                     </p>
                   </div>
                 </div>
 
                 {/* Quick Actions */}
                 <div className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start text-left h-auto p-3 bg-transparent">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left h-auto p-3 bg-transparent"
+                  >
                     Apa promosi terbaik sekarang?
                   </Button>
-                  <Button variant="outline" className="w-full justify-start text-left h-auto p-3 bg-transparent">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left h-auto p-3 bg-transparent"
+                  >
                     Apa promosi sekarang?
                   </Button>
                 </div>
@@ -385,17 +449,24 @@ export default function Dashboard() {
                     <Bot className="h-4 w-4 text-white" />
                   </div>
                   <p className="text-sm text-blue-900">
-                    Produk xx akan terdeteksi melonjak pada bulan ini. Promosi akan meningkatkan keuntungan kita.
+                    Produk xx akan terdeteksi melonjak pada bulan ini. Promosi
+                    akan meningkatkan keuntungan kita.
                   </p>
                 </div>
               </div>
 
               {/* Quick Actions */}
               <div className="space-y-2">
-                <Button variant="outline" className="w-full justify-start text-left h-auto p-3 bg-transparent">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left h-auto p-3 bg-transparent"
+                >
                   Apa promosi terbaik sekarang?
                 </Button>
-                <Button variant="outline" className="w-full justify-start text-left h-auto p-3 bg-transparent">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left h-auto p-3 bg-transparent"
+                >
                   Apa promosi sekarang?
                 </Button>
               </div>
@@ -434,27 +505,53 @@ export default function Dashboard() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">No</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Nama Produk</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Harga Normal</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Besar Diskon</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Harga Diskon</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Jenis Diskon</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Durasi Diskon</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Status</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">
+                    No
+                  </th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">
+                    Nama Produk
+                  </th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">
+                    Harga Normal
+                  </th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">
+                    Besar Diskon
+                  </th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">
+                    Harga Diskon
+                  </th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">
+                    Jenis Diskon
+                  </th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">
+                    Durasi Diskon
+                  </th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">
+                    Status
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {filteredPromotions.map((product, index) => (
                   <tr key={product.id} className="border-b hover:bg-muted/50">
                     <td className="p-3 text-sm">{index + 1}</td>
-                    <td className="p-3 text-sm font-medium">{product.product}</td>
-                    <td className="p-3 text-sm">{formatCurrency(product.normalPrice)}</td>
-                    <td className="p-3 text-sm font-medium">{product.discountAmount}</td>
-                    <td className="p-3 text-sm font-medium text-blue-600">{formatCurrency(product.discountPrice)}</td>
+                    <td className="p-3 text-sm font-medium">
+                      {product.product}
+                    </td>
+                    <td className="p-3 text-sm">
+                      {formatCurrency(product.normalPrice)}
+                    </td>
+                    <td className="p-3 text-sm font-medium">
+                      {product.discountAmount}
+                    </td>
+                    <td className="p-3 text-sm font-medium text-blue-600">
+                      {formatCurrency(product.discountPrice)}
+                    </td>
                     <td className="p-3 text-sm">{product.discountType}</td>
                     <td className="p-3 text-sm">{product.duration}</td>
-                    <td className="p-3">{getStatusBadge(product.status, product.id)}</td>
+                    <td className="p-3">
+                      {getStatusBadge(product.status, product.id)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -478,7 +575,10 @@ export default function Dashboard() {
             </div>
             <div className="ml-8 h-full flex items-end justify-between">
               {salesChartData.map((point, index) => (
-                <div key={index} className="flex flex-col items-center flex-1 relative">
+                <div
+                  key={index}
+                  className="flex flex-col items-center flex-1 relative"
+                >
                   <div
                     className="w-full bg-blue-500 rounded-t transition-all duration-300 ease-in-out relative"
                     style={{ height: `${point.value}%` }}
@@ -489,13 +589,115 @@ export default function Dashboard() {
                       </div>
                     )}
                   </div>
-                  <span className="text-xs text-muted-foreground mt-2">{point.label}</span>
+                  <span className="text-xs text-muted-foreground mt-2">
+                    {point.label}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Store Overview */}
+      <Card className="bg-white">
+        <CardHeader>
+          <CardTitle className="text-gray-900">
+            {selectedStore === "all" ? "Store Overview" : "Store Details"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">
+                    Store
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">
+                    Status
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">
+                    Daily Revenue
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">
+                    Transactions
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">
+                    Growth
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">
+                    Action
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredStores.map((store) => (
+                  <tr
+                    key={store.id}
+                    className="border-b border-gray-100 hover:bg-gray-50"
+                  >
+                    <td className="py-3 px-4">
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {store.name}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {store.location}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <Badge
+                        variant={
+                          store.status === "active" ? "default" : "secondary"
+                        }
+                        className={
+                          store.status === "active"
+                            ? "bg-green-100 text-green-800"
+                            : ""
+                        }
+                      >
+                        {store.status}
+                      </Badge>
+                    </td>
+                    <td className="py-3 px-4 font-medium text-gray-900">
+                      {formatCurrency(store.dailyRevenue)}
+                    </td>
+                    <td className="py-3 px-4 text-gray-600">
+                      {formatNumber(Math.round(store.dailyTransactions))}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center">
+                        {store.growth > 0 ? (
+                          <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
+                        ) : (
+                          <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
+                        )}
+                        <span className={getGrowthColor(store.growth)}>
+                          {store.growth > 0 ? "+" : ""}
+                          {store.growth}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <Link href={`/store/${store.id}`}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-blue-600 border-blue-200 hover:bg-blue-50 bg-transparent"
+                        >
+                          View Details
+                        </Button>
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
-  )
+  );
 }
