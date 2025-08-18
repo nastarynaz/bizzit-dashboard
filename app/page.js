@@ -3,11 +3,10 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
-import { TrendingUp, ShoppingCart, DollarSign, BarChart3, Activity, ArrowRight, Send, Bot } from "lucide-react"
+import { TrendingUp, ShoppingCart, DollarSign, BarChart3, ArrowRight, Send, Bot } from "lucide-react"
 import {
   stores,
   getOverallAnalytics,
@@ -24,18 +23,7 @@ export default function Dashboard() {
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [chatInput, setChatInput] = useState("")
 
-  const analytics = getOverallAnalytics()
-  const topProducts = getTopProducts()
-
-  const categories = [
-    "Makanan & Minuman",
-    "Kebutuhan Rumah Tangga",
-    "Kesehatan & Kecantikan",
-    "Elektronik",
-    "Pakaian & Aksesoris",
-  ]
-
-  const top5Promotions = [
+  const [promotions, setPromotions] = useState([
     {
       id: 1,
       product: "Indomie Goreng",
@@ -49,7 +37,7 @@ export default function Dashboard() {
       endTime: "15/12/2024",
       duration: "14 hari",
       potentialRevenue: 2500000,
-      status: "Direkomendasikan",
+      status: "non aktif",
     },
     {
       id: 2,
@@ -64,7 +52,7 @@ export default function Dashboard() {
       endTime: "20/12/2024",
       duration: "15 hari",
       potentialRevenue: 1800000,
-      status: "Direkomendasikan",
+      status: "non aktif",
     },
     {
       id: 3,
@@ -79,7 +67,7 @@ export default function Dashboard() {
       endTime: "31/12/2024",
       duration: "21 hari",
       potentialRevenue: 5200000,
-      status: "Direkomendasikan",
+      status: "aktif",
     },
     {
       id: 4,
@@ -94,7 +82,7 @@ export default function Dashboard() {
       endTime: "30/12/2024",
       duration: "15 hari",
       potentialRevenue: 3100000,
-      status: "Direkomendasikan",
+      status: "non aktif",
     },
     {
       id: 5,
@@ -109,8 +97,19 @@ export default function Dashboard() {
       endTime: "05/01/2025",
       duration: "16 hari",
       potentialRevenue: 2800000,
-      status: "Direkomendasikan",
+      status: "aktif",
     },
+  ])
+
+  const analytics = getOverallAnalytics()
+  const topProducts = getTopProducts()
+
+  const categories = [
+    "Makanan & Minuman",
+    "Kebutuhan Rumah Tangga",
+    "Kesehatan & Kecantikan",
+    "Elektronik",
+    "Pakaian & Aksesoris",
   ]
 
   const salesChartData = [
@@ -128,17 +127,52 @@ export default function Dashboard() {
     { label: "60k", value: 50 },
   ]
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "Direkomendasikan":
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Direkomendasikan</Badge>
-      case "Aktif":
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Aktif</Badge>
-      case "Berakhir":
-        return <Badge variant="secondary">Berakhir</Badge>
-      default:
-        return <Badge variant="outline">{status}</Badge>
+  const togglePromotionStatus = (promotionId) => {
+    setPromotions(
+      promotions.map((promotion) =>
+        promotion.id === promotionId
+          ? { ...promotion, status: promotion.status === "aktif" ? "non aktif" : "aktif" }
+          : promotion,
+      ),
+    )
+  }
+
+  const getFilteredPromotions = () => {
+    let filtered = promotions
+
+    // Filter by category
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter((promotion) => {
+        const categoryMap = {
+          "Makanan & Minuman": ["Makanan", "Minuman"],
+          "Kebutuhan Rumah Tangga": ["Sembako", "Kebersihan"],
+        }
+        const matchingCategories = categoryMap[selectedCategory] || [selectedCategory]
+        return matchingCategories.includes(promotion.category)
+      })
     }
+
+    // Filter by store (placeholder logic - in real app would filter by store-specific products)
+    if (selectedStore !== "all") {
+      // For demo purposes, we'll show all promotions regardless of store
+      // In a real app, you'd filter based on store-specific inventory
+    }
+
+    return filtered.slice(0, 5) // Show top 5
+  }
+
+  const getStatusBadge = (status, promotionId) => {
+    const isActive = status === "aktif"
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => togglePromotionStatus(promotionId)}
+        className={`${isActive ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-gray-100 text-gray-800 hover:bg-gray-200"}`}
+      >
+        {isActive ? "Aktif" : "Non Aktif"}
+      </Button>
+    )
   }
 
   // Filter data based on selected store
@@ -159,6 +193,7 @@ export default function Dashboard() {
   }
 
   const filteredAnalytics = getFilteredAnalytics()
+  const filteredPromotions = getFilteredPromotions()
 
   const handleChatSubmit = (e) => {
     e.preventDefault()
@@ -282,16 +317,50 @@ export default function Dashboard() {
             </Card>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">ROI</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Bot className="h-5 w-5" />
+                  AI Insights
+                </CardTitle>
+                <Button size="sm" className="bg-blue-500 hover:bg-blue-600">
+                  Cek Insight
+                </Button>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(filteredAnalytics.totalRevenue)}</div>
-                <div className="flex items-center text-xs text-muted-foreground">
-                  <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
-                  +3.9% vs last month
+              <CardContent className="space-y-4">
+                {/* AI Message */}
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Bot className="h-4 w-4 text-white" />
+                    </div>
+                    <p className="text-sm text-blue-900">
+                      Produk xx akan terdeteksi melonjak pada bulan ini. Promosi akan meningkatkan keuntungan kita.
+                    </p>
+                  </div>
                 </div>
+
+                {/* Quick Actions */}
+                <div className="space-y-2">
+                  <Button variant="outline" className="w-full justify-start text-left h-auto p-3 bg-transparent">
+                    Apa promosi terbaik sekarang?
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start text-left h-auto p-3 bg-transparent">
+                    Apa promosi sekarang?
+                  </Button>
+                </div>
+
+                {/* Chat Input */}
+                <form onSubmit={handleChatSubmit} className="flex gap-2">
+                  <Input
+                    placeholder="Still got question?"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button type="submit" size="icon">
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </form>
               </CardContent>
             </Card>
           </div>
@@ -372,10 +441,11 @@ export default function Dashboard() {
                   <th className="text-left p-3 text-sm font-medium text-muted-foreground">Harga Diskon</th>
                   <th className="text-left p-3 text-sm font-medium text-muted-foreground">Jenis Diskon</th>
                   <th className="text-left p-3 text-sm font-medium text-muted-foreground">Durasi Diskon</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {top5Promotions.slice(0, 5).map((product, index) => (
+                {filteredPromotions.map((product, index) => (
                   <tr key={product.id} className="border-b hover:bg-muted/50">
                     <td className="p-3 text-sm">{index + 1}</td>
                     <td className="p-3 text-sm font-medium">{product.product}</td>
@@ -384,6 +454,7 @@ export default function Dashboard() {
                     <td className="p-3 text-sm font-medium text-blue-600">{formatCurrency(product.discountPrice)}</td>
                     <td className="p-3 text-sm">{product.discountType}</td>
                     <td className="p-3 text-sm">{product.duration}</td>
+                    <td className="p-3">{getStatusBadge(product.status, product.id)}</td>
                   </tr>
                 ))}
               </tbody>
