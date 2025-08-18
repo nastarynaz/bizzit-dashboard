@@ -1,6 +1,8 @@
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import "./globals.css"
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
+import { DashboardSidebar } from "@/components/dashboard-sidebar"
 
 export const metadata = {
   title: "Minimarket Sales Dashboard",
@@ -20,7 +22,12 @@ html {
 }
         `}</style>
       </head>
-      <body>{children}</body>
+      <body>
+        <SidebarProvider>
+          <DashboardSidebar />
+          <SidebarInset>{children}</SidebarInset>
+        </SidebarProvider>
+      </body>
     </html>
   )
 }
