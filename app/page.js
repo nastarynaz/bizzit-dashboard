@@ -3,13 +3,18 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Link from "next/link";
 import {
   TrendingUp,
-  TrendingDown,
   ShoppingCart,
   DollarSign,
   BarChart3,
@@ -23,57 +28,14 @@ import {
   getTopProducts,
   formatCurrency,
   formatNumber,
-  getGrowthColor,
   analyticsData,
-  getRevenueTrendData,
 } from "@/lib/database";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 export default function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState("1w");
   const [selectedStore, setSelectedStore] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [chatInput, setChatInput] = useState("");
-  const analytics = getOverallAnalytics();
-  const topProducts = getTopProducts();
-
-  // Filter data based on selected store
-  const getFilteredAnalytics = () => {
-    if (selectedStore === "all") {
-      return analytics;
-    }
-
-    const storeId = Number.parseInt(selectedStore);
-    const storeAnalytics = analyticsData.byStore[storeId];
-
-    return {
-      totalRevenue: storeAnalytics?.revenue || 0,
-      totalTransactions: storeAnalytics?.transactions || 0,
-      avgOrderValue: Math.round(
-        (storeAnalytics?.revenue || 0) / (storeAnalytics?.transactions || 1)
-      ),
-      monthlyGrowth: storeAnalytics?.growth || 0,
-    };
-  };
-
-  const getFilteredStores = () => {
-    if (selectedStore === "all") {
-      return stores;
-    }
-    return stores.filter(
-      (store) => store.id === Number.parseInt(selectedStore)
-    );
-  };
-
-  const filteredAnalytics = getFilteredAnalytics();
-  const filteredStores = getFilteredStores();
-  const revenueTrend = getRevenueTrendData(selectedPeriod);
 
   const [promotions, setPromotions] = useState([
     {
@@ -153,6 +115,9 @@ export default function Dashboard() {
     },
   ]);
 
+  const analytics = getOverallAnalytics();
+  const topProducts = getTopProducts();
+
   const categories = [
     "Makanan & Minuman",
     "Kebutuhan Rumah Tangga",
@@ -161,20 +126,41 @@ export default function Dashboard() {
     "Pakaian & Aksesoris",
   ];
 
-  const salesChartData = [
-    { label: "5k", value: 20 },
-    { label: "10k", value: 25 },
-    { label: "15k", value: 30 },
-    { label: "20k", value: 35 },
-    { label: "25k", value: 45 },
-    { label: "30k", value: 55 },
-    { label: "35k", value: 60 },
-    { label: "40k", value: 70 },
-    { label: "45k", value: 65 },
-    { label: "50k", value: 60 },
-    { label: "55k", value: 55 },
-    { label: "60k", value: 50 },
-  ];
+  const generateSalesChartData = () => {
+    const baseData = [
+      { label: "5k", value: 20 },
+      { label: "10k", value: 25 },
+      { label: "15k", value: 30 },
+      { label: "20k", value: 35 },
+      { label: "25k", value: 45 },
+      { label: "30k", value: 55 },
+      { label: "35k", value: 60 },
+      { label: "40k", value: 70 },
+      { label: "45k", value: 65 },
+      { label: "50k", value: 60 },
+      { label: "55k", value: 55 },
+      { label: "60k", value: 45 },
+    ];
+
+    const periodMultiplier =
+      {
+        "1w": 0.7,
+        "1m": 1.0,
+        "3m": 1.3,
+        "1y": 1.8,
+        all: 2.0,
+      }[selectedPeriod] || 1.0;
+
+    const storeMultiplier = selectedStore === "all" ? 1.0 : 0.8;
+
+    return baseData.map((point) => ({
+      ...point,
+      value: Math.min(
+        100,
+        Math.round(point.value * periodMultiplier * storeMultiplier)
+      ),
+    }));
+  };
 
   const togglePromotionStatus = (promotionId) => {
     setPromotions(
@@ -192,7 +178,6 @@ export default function Dashboard() {
   const getFilteredPromotions = () => {
     let filtered = promotions;
 
-    // Filter by category
     if (selectedCategory !== "all") {
       filtered = filtered.filter((promotion) => {
         const categoryMap = {
@@ -206,7 +191,6 @@ export default function Dashboard() {
       });
     }
 
-    // Filter by store (placeholder logic - in real app would filter by store-specific products)
     if (selectedStore !== "all") {
       // For demo purposes, we'll show all promotions regardless of store
       // In a real app, you'd filter based on store-specific inventory
@@ -233,13 +217,94 @@ export default function Dashboard() {
     );
   };
 
+  const getFilteredAnalytics = () => {
+    let baseAnalytics = analytics;
+
+    if (selectedStore !== "all") {
+      const storeId = Number.parseInt(selectedStore);
+      const storeAnalytics = analyticsData.byStore[storeId];
+      baseAnalytics = {
+        totalRevenue: storeAnalytics?.revenue || 0,
+        totalTransactions: storeAnalytics?.transactions || 0,
+        avgOrderValue: Math.round(
+          (storeAnalytics?.revenue || 0) / (storeAnalytics?.transactions || 1)
+        ),
+        monthlyGrowth: storeAnalytics?.growth || 0,
+      };
+    }
+
+    const periodMultiplier =
+      {
+        "1w": 0.25,
+        "1m": 1.0,
+        "3m": 3.0,
+        "1y": 12.0,
+        all: 15.0,
+      }[selectedPeriod] || 1.0;
+
+    return {
+      totalRevenue: Math.round(baseAnalytics.totalRevenue * periodMultiplier),
+      totalTransactions: Math.round(
+        baseAnalytics.totalTransactions * periodMultiplier
+      ),
+      avgOrderValue: baseAnalytics.avgOrderValue,
+      monthlyGrowth: baseAnalytics.monthlyGrowth,
+    };
+  };
+
+  const getActivePromotions = () => {
+    return getFilteredPromotions().filter(
+      (promotion) => promotion.status === "aktif"
+    );
+  };
+
+  const getFilteredTopProducts = () => {
+    let filtered = topProducts;
+
+    if (selectedStore !== "all") {
+      const storeMultiplier = 0.7;
+      filtered = filtered.map((product) => ({
+        ...product,
+        quantity: Math.round(product.quantity * storeMultiplier),
+      }));
+    }
+
+    const periodMultiplier =
+      {
+        "1w": 0.25,
+        "1m": 1.0,
+        "3m": 2.5,
+        "1y": 10.0,
+        all: 12.0,
+      }[selectedPeriod] || 1.0;
+
+    return filtered.map((product) => ({
+      ...product,
+      quantity: Math.round(product.quantity * periodMultiplier),
+    }));
+  };
+
+  const filteredAnalytics = getFilteredAnalytics();
   const filteredPromotions = getFilteredPromotions();
+  const activePromotions = getActivePromotions();
+  const salesChartData = generateSalesChartData();
+  const filteredTopProducts = getFilteredTopProducts();
 
   const handleChatSubmit = (e) => {
     e.preventDefault();
-    // Handle chat submission logic here
     console.log("Chat message:", chatInput);
     setChatInput("");
+  };
+
+  const getPeriodLabel = () => {
+    const labels = {
+      "1w": "minggu ini",
+      "1m": "bulan ini",
+      "3m": "3 bulan terakhir",
+      "1y": "tahun ini",
+      all: "sepanjang waktu",
+    };
+    return labels[selectedPeriod] || "periode terpilih";
   };
 
   return (
@@ -253,11 +318,11 @@ export default function Dashboard() {
             </h1>
             <p className="text-muted-foreground">
               {selectedStore === "all"
-                ? "Real-time analytics untuk semua toko"
+                ? `Analytics untuk semua toko - ${getPeriodLabel()}`
                 : `Analytics untuk ${
                     stores.find((s) => s.id === Number.parseInt(selectedStore))
                       ?.name
-                  }`}
+                  } - ${getPeriodLabel()}`}
             </p>
           </div>
         </div>
@@ -316,7 +381,6 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Left section - 4 Metric Cards */}
         <div className="lg:col-span-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
@@ -374,57 +438,28 @@ export default function Dashboard() {
             </Card>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Bot className="h-5 w-5" />
-                  AI Insights
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Active Promotions
                 </CardTitle>
-                <Button size="sm" className="bg-blue-500 hover:bg-blue-600">
-                  Cek Insight
-                </Button>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* AI Message */}
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Bot className="h-4 w-4 text-white" />
-                    </div>
-                    <p className="text-sm text-blue-900">
-                      Produk xx akan terdeteksi melonjak pada bulan ini. Promosi
-                      akan meningkatkan keuntungan kita.
-                    </p>
-                  </div>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {activePromotions.length}
                 </div>
-
-                {/* Quick Actions */}
-                <div className="space-y-2">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left h-auto p-3 bg-transparent"
-                  >
-                    Apa promosi terbaik sekarang?
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left h-auto p-3 bg-transparent"
-                  >
-                    Apa promosi sekarang?
-                  </Button>
+                <div className="flex items-center text-xs text-muted-foreground">
+                  {activePromotions.length > 0 ? (
+                    <>
+                      <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
+                      {activePromotions.length} promotions running
+                    </>
+                  ) : (
+                    <span className="text-orange-500">
+                      No active promotions
+                    </span>
+                  )}
                 </div>
-
-                {/* Chat Input */}
-                <form onSubmit={handleChatSubmit} className="flex gap-2">
-                  <Input
-                    placeholder="Still got question?"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button type="submit" size="icon">
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </form>
               </CardContent>
             </Card>
           </div>
@@ -442,20 +477,19 @@ export default function Dashboard() {
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* AI Message */}
               <div className="bg-blue-50 p-4 rounded-lg">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
                     <Bot className="h-4 w-4 text-white" />
                   </div>
                   <p className="text-sm text-blue-900">
-                    Produk xx akan terdeteksi melonjak pada bulan ini. Promosi
-                    akan meningkatkan keuntungan kita.
+                    {activePromotions.length > 0
+                      ? `You have ${activePromotions.length} active promotions running. Consider monitoring their performance for optimization.`
+                      : "No active promotions detected. Consider launching promotions for products with declining sales to boost revenue."}
                   </p>
                 </div>
               </div>
 
-              {/* Quick Actions */}
               <div className="space-y-2">
                 <Button
                   variant="outline"
@@ -471,7 +505,6 @@ export default function Dashboard() {
                 </Button>
               </div>
 
-              {/* Chat Input */}
               <form onSubmit={handleChatSubmit} className="flex gap-2">
                 <Input
                   placeholder="Still got question?"
@@ -491,7 +524,7 @@ export default function Dashboard() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Product Promotion Reccomendation</CardTitle>
+            <CardTitle>Product Promotion Recommendation</CardTitle>
             <Link href="/promotions">
               <Button className="gap-2 bg-blue-500 hover:bg-blue-600">
                 Lihat Detail
@@ -563,6 +596,14 @@ export default function Dashboard() {
       <Card>
         <CardHeader>
           <CardTitle>Sales Details</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Sales performance for {getPeriodLabel()}
+            {selectedStore !== "all" &&
+              ` - ${
+                stores.find((s) => s.id === Number.parseInt(selectedStore))
+                  ?.name
+              }`}
+          </p>
         </CardHeader>
         <CardContent>
           <div className="h-80 relative">
@@ -585,7 +626,7 @@ export default function Dashboard() {
                   >
                     {point.value > 60 && (
                       <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
-                        64.3664
+                        {point.value}%
                       </div>
                     )}
                   </div>
@@ -595,106 +636,6 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Store Overview */}
-      <Card className="bg-white">
-        <CardHeader>
-          <CardTitle className="text-gray-900">
-            {selectedStore === "all" ? "Store Overview" : "Store Details"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">
-                    Store
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">
-                    Status
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">
-                    Daily Revenue
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">
-                    Transactions
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">
-                    Growth
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredStores.map((store) => (
-                  <tr
-                    key={store.id}
-                    className="border-b border-gray-100 hover:bg-gray-50"
-                  >
-                    <td className="py-3 px-4">
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {store.name}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {store.location}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <Badge
-                        variant={
-                          store.status === "active" ? "default" : "secondary"
-                        }
-                        className={
-                          store.status === "active"
-                            ? "bg-green-100 text-green-800"
-                            : ""
-                        }
-                      >
-                        {store.status}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 font-medium text-gray-900">
-                      {formatCurrency(store.dailyRevenue)}
-                    </td>
-                    <td className="py-3 px-4 text-gray-600">
-                      {formatNumber(Math.round(store.dailyTransactions))}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center">
-                        {store.growth > 0 ? (
-                          <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                        ) : (
-                          <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
-                        )}
-                        <span className={getGrowthColor(store.growth)}>
-                          {store.growth > 0 ? "+" : ""}
-                          {store.growth}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <Link href={`/store/${store.id}`}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-blue-600 border-blue-200 hover:bg-blue-50 bg-transparent"
-                        >
-                          View Details
-                        </Button>
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </CardContent>
       </Card>
