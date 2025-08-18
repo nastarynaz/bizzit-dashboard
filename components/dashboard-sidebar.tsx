@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, TrendingUp, Tag, Package, CreditCard, MessageCircle, Home } from "lucide-react"
+import { BarChart3, TrendingUp, Tag, Package, CreditCard, MessageCircle, Home, Server } from "lucide-react"
 
 import {
   Sidebar,
@@ -41,6 +41,11 @@ const navigationItems = [
     title: "POS Integrations",
     url: "/pos-integration",
     icon: CreditCard,
+  },
+  {
+    title: "External API Test",
+    url: "/api-test-external",
+    icon: Server,
   },
   {
     title: "Chatbot",
