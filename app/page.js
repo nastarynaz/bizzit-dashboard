@@ -3,236 +3,348 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import Link from "next/link"
-import {
-  TrendingUp,
-  TrendingDown,
-  Store,
-  ShoppingCart,
-  DollarSign,
-  Users,
-  Package,
-  Target,
-  BarChart3,
-  PieChart,
-  Activity,
-} from "lucide-react"
-import {
-  stores,
-  getOverallAnalytics,
-  getTopProducts,
-  formatCurrency,
-  formatNumber,
-  getGrowthColor,
-  analyticsData,
-  getRevenueTrendData,
-} from "@/lib/database"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { TrendingUp, TrendingDown, Send, ExternalLink, Bot } from "lucide-react"
 
 export default function Dashboard() {
-  const [selectedPeriod, setSelectedPeriod] = useState("1w")
+  const [timeframe, setTimeframe] = useState("all-time")
   const [selectedStore, setSelectedStore] = useState("all")
-  const analytics = getOverallAnalytics()
-  const topProducts = getTopProducts()
+  const [category, setCategory] = useState("all")
+  const [chatMessage, setChatMessage] = useState("")
 
-  // Filter data based on selected store
-  const getFilteredAnalytics = () => {
-    if (selectedStore === "all") {
-      return analytics
-    }
+  // Mock data for stores
+  const storeData = [
+    { id: 1, name: "Toko 1", revenue: "Rp 45.000.000", growth: "+12.5%", color: "bg-green-500" },
+    { id: 2, name: "Toko 2", revenue: "Rp 38.000.000", growth: "+8.3%", color: "bg-green-500" },
+    { id: 3, name: "Toko 3", revenue: "Rp 52.000.000", growth: "+15.2%", color: "bg-green-500" },
+    { id: 4, name: "Toko 4", revenue: "Rp 41.000.000", growth: "-2.1%", color: "bg-orange-500" },
+    { id: 5, name: "Toko 5", revenue: "Rp 47.000.000", growth: "+9.8%", color: "bg-green-500" },
+  ]
 
-    const storeId = Number.parseInt(selectedStore)
-    const storeAnalytics = analyticsData.byStore[storeId]
+  // Mock promotion data
+  const promotionProducts = [
+    {
+      no: 1,
+      name: "Indomie Goreng",
+      normalPrice: "Rp 3.500",
+      discount: "15%",
+      discountPrice: "Rp 2.975",
+      type: "Flash Sale",
+      duration: "3 hari",
+    },
+    {
+      no: 2,
+      name: "Aqua 600ml",
+      normalPrice: "Rp 3.000",
+      discount: "10%",
+      discountPrice: "Rp 2.700",
+      type: "Bundle",
+      duration: "1 minggu",
+    },
+  ]
 
-    return {
-      totalRevenue: storeAnalytics?.revenue || 0,
-      totalTransactions: storeAnalytics?.transactions || 0,
-      avgOrderValue: Math.round((storeAnalytics?.revenue || 0) / (storeAnalytics?.transactions || 1)),
-      monthlyGrowth: storeAnalytics?.growth || 0,
+  // Sales chart data points
+  const salesData = [
+    { x: 5, y: 20 },
+    { x: 10, y: 45 },
+    { x: 15, y: 35 },
+    { x: 20, y: 55 },
+    { x: 25, y: 40 },
+    { x: 30, y: 65 },
+    { x: 35, y: 50 },
+    { x: 40, y: 75 },
+    { x: 45, y: 60 },
+    { x: 50, y: 55 },
+    { x: 55, y: 70 },
+    { x: 60, y: 45 },
+  ]
+
+  const handleSendMessage = () => {
+    if (chatMessage.trim()) {
+      setChatMessage("")
     }
   }
-
-  const getFilteredStores = () => {
-    if (selectedStore === "all") {
-      return stores
-    }
-    return stores.filter((store) => store.id === Number.parseInt(selectedStore))
-  }
-
-  const filteredAnalytics = getFilteredAnalytics()
-  const filteredStores = getFilteredStores()
-  const revenueTrend = getRevenueTrendData(selectedPeriod)
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Minimarket Sales Dashboard</h1>
-              <p className="text-gray-600">
-                {selectedStore === "all"
-                  ? "Overview semua toko - Real-time analytics dan insights"
-                  : `Overview ${stores.find((s) => s.id === Number.parseInt(selectedStore))?.name} - Real-time analytics dan insights`}
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-gray-700 mb-1">Filter Toko:</label>
-                <Select value={selectedStore} onValueChange={setSelectedStore}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Pilih toko" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Toko</SelectItem>
-                    {stores.map((store) => (
-                      <SelectItem key={store.id} value={store.id.toString()}>
-                        {store.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
+    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard Summary</h1>
+        <p className="text-gray-600">Analisis komprehensif dari 7 toko UMKM minimarket</p>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-6">
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">Timeframe:</label>
+          <Select value={timeframe} onValueChange={setTimeframe}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all-time">All-time</SelectItem>
+              <SelectItem value="1-year">1 Year</SelectItem>
+              <SelectItem value="6-months">6 Months</SelectItem>
+              <SelectItem value="3-months">3 Months</SelectItem>
+              <SelectItem value="1-month">1 Month</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="bg-white border-blue-200">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Revenue</CardTitle>
-                <DollarSign className="w-4 h-4 text-blue-600" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{formatCurrency(filteredAnalytics.totalRevenue)}</div>
-              <div className="flex items-center mt-2">
-                <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                <span className="text-sm text-green-600">+{filteredAnalytics.monthlyGrowth.toFixed(1)}%</span>
-                <span className="text-sm text-gray-500 ml-1">vs last month</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white border-blue-200">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Transactions</CardTitle>
-                <ShoppingCart className="w-4 h-4 text-blue-600" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
-                {formatNumber(filteredAnalytics.totalTransactions)}
-              </div>
-              <div className="flex items-center mt-2">
-                <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                <span className="text-sm text-green-600">+8.2%</span>
-                <span className="text-sm text-gray-500 ml-1">vs last month</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white border-blue-200">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium text-gray-600">Average Order Value</CardTitle>
-                <BarChart3 className="w-4 h-4 text-blue-600" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">{formatCurrency(filteredAnalytics.avgOrderValue)}</div>
-              <div className="flex items-center mt-2">
-                <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                <span className="text-sm text-green-600">+5.1%</span>
-                <span className="text-sm text-gray-500 ml-1">vs last month</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white border-blue-200">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  {selectedStore === "all" ? "Active Stores" : "Store Status"}
-                </CardTitle>
-                <Store className="w-4 h-4 text-blue-600" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
-                {selectedStore === "all" ? `${stores.filter((s) => s.status === "active").length}/7` : "Active"}
-              </div>
-              <div className="flex items-center mt-2">
-                <Activity className="w-4 h-4 text-green-500 mr-1" />
-                <span className="text-sm text-green-600">
-                  {selectedStore === "all" ? "All operational" : "Operational"}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">Toko:</label>
+          <Select value={selectedStore} onValueChange={setSelectedStore}>
+            <SelectTrigger className="w-24">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              {storeData.map((store) => (
+                <SelectItem key={store.id} value={store.id.toString()}>
+                  {store.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Charts and Analytics */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Revenue Trend */}
-          <Card className="bg-white">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-gray-900">{revenueTrend.title}</CardTitle>
-                <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1w">1 Minggu</SelectItem>
-                    <SelectItem value="1m">1 Bulan</SelectItem>
-                    <SelectItem value="1y">1 Tahun</SelectItem>
-                    <SelectItem value="2y">2 Tahun</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64 flex items-end justify-between space-x-2">
-                {revenueTrend.data.map((height, index) => (
-                  <div key={index} className="flex flex-col items-center flex-1">
-                    <div
-                      className="w-full bg-blue-500 rounded-t transition-all duration-300 ease-in-out"
-                      style={{ height: `${height}%` }}
-                    />
-                    <span className="text-xs text-gray-500 mt-2 text-center">{revenueTrend.labels[index]}</span>
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">Categories:</label>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger className="w-24">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="food">Makanan</SelectItem>
+              <SelectItem value="beverage">Minuman</SelectItem>
+              <SelectItem value="household">Kebutuhan RT</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left side - Metrics */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Metrics Cards */}
+          <div className="grid grid-cols-2 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                  <p className="text-2xl font-bold text-gray-900">Rp 22.000.000</p>
+                  <div className="flex items-center">
+                    <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+                    <span className="text-sm text-green-600">+18.2%</span>
+                    <span className="text-sm text-gray-500 ml-1">vs last month</span>
                   </div>
-                ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">Total Transactions</p>
+                  <p className="text-2xl font-bold text-gray-900">332</p>
+                  <div className="flex items-center">
+                    <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+                    <span className="text-sm text-green-600">+9.3%</span>
+                    <span className="text-sm text-gray-500 ml-1">vs last month</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">Average Order Value</p>
+                  <p className="text-2xl font-bold text-gray-900">Rp 50.904</p>
+                  <div className="flex items-center">
+                    <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+                    <span className="text-sm text-green-600">+2.2%</span>
+                    <span className="text-sm text-gray-500 ml-1">vs last month</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">ROI</p>
+                  <p className="text-2xl font-bold text-gray-900">Rp 22.000.000</p>
+                  <div className="flex items-center">
+                    <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+                    <span className="text-sm text-green-600">+3.9%</span>
+                    <span className="text-sm text-gray-500 ml-1">vs last month</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Product Promotion Recommendation */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+              <CardTitle className="text-lg font-semibold">Product Promotion Recommendation</CardTitle>
+              <Button size="sm" variant="outline" className="text-blue-600 border-blue-600 bg-transparent">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Lihat Detail
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-2 font-medium text-gray-600">No</th>
+                      <th className="text-left py-2 font-medium text-gray-600">Nama Produk</th>
+                      <th className="text-left py-2 font-medium text-gray-600">Harga Normal</th>
+                      <th className="text-left py-2 font-medium text-gray-600">Besar Diskon</th>
+                      <th className="text-left py-2 font-medium text-gray-600">Harga Diskon</th>
+                      <th className="text-left py-2 font-medium text-gray-600">Jenis Diskon</th>
+                      <th className="text-left py-2 font-medium text-gray-600">Durasi Diskon</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {promotionProducts.map((product) => (
+                      <tr key={product.no} className="border-b border-gray-100">
+                        <td className="py-3">{product.no}</td>
+                        <td className="py-3 font-medium">{product.name}</td>
+                        <td className="py-3">{product.normalPrice}</td>
+                        <td className="py-3">{product.discount}</td>
+                        <td className="py-3 font-medium text-green-600">{product.discountPrice}</td>
+                        <td className="py-3">{product.type}</td>
+                        <td className="py-3">{product.duration}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </CardContent>
           </Card>
 
-          {/* Top Products */}
-          <Card className="bg-white">
+          {/* Sales Details Chart */}
+          <Card>
             <CardHeader>
-              <CardTitle className="text-gray-900">Top Selling Products</CardTitle>
+              <CardTitle className="text-lg font-semibold">Sales Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64 w-full relative">
+                <svg viewBox="0 0 600 200" className="w-full h-full">
+                  <defs>
+                    <linearGradient id="salesGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.3" />
+                      <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.1" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Grid lines */}
+                  {[20, 40, 60, 80, 100].map((y) => (
+                    <line
+                      key={y}
+                      x1="50"
+                      y1={180 - y * 1.3}
+                      x2="550"
+                      y2={180 - y * 1.3}
+                      stroke="#E5E7EB"
+                      strokeWidth="1"
+                    />
+                  ))}
+
+                  {/* Y-axis labels */}
+                  {["20%", "40%", "60%", "80%", "100%"].map((label, index) => (
+                    <text key={label} x="40" y={185 - index * 26} fontSize="12" fill="#6B7280" textAnchor="end">
+                      {label}
+                    </text>
+                  ))}
+
+                  {/* X-axis labels */}
+                  {["5k", "10k", "15k", "20k", "25k", "30k", "35k", "40k", "45k", "50k", "55k", "60k"].map(
+                    (label, index) => (
+                      <text key={label} x={70 + index * 40} y="195" fontSize="12" fill="#6B7280" textAnchor="middle">
+                        {label}
+                      </text>
+                    ),
+                  )}
+
+                  {/* Area fill */}
+                  <path
+                    d={`M 70 ${180 - salesData[0].y * 1.3} ${salesData
+                      .map((point, index) => `L ${70 + index * 40} ${180 - point.y * 1.3}`)
+                      .join(" ")} L ${70 + (salesData.length - 1) * 40} 180 L 70 180 Z`}
+                    fill="url(#salesGradient)"
+                  />
+
+                  {/* Line */}
+                  <path
+                    d={`M 70 ${180 - salesData[0].y * 1.3} ${salesData
+                      .map((point, index) => `L ${70 + index * 40} ${180 - point.y * 1.3}`)
+                      .join(" ")}`}
+                    fill="none"
+                    stroke="#3B82F6"
+                    strokeWidth="2"
+                  />
+
+                  {/* Data points */}
+                  {salesData.map((point, index) => (
+                    <circle
+                      key={index}
+                      cx={70 + index * 40}
+                      cy={180 - point.y * 1.3}
+                      r="3"
+                      fill="#3B82F6"
+                      stroke="white"
+                      strokeWidth="2"
+                    />
+                  ))}
+
+                  {/* Peak point highlight */}
+                  <circle cx={70 + 7 * 40} cy={180 - 75 * 1.3} r="4" fill="#3B82F6" stroke="white" strokeWidth="2" />
+                  <rect x={70 + 7 * 40 - 25} y={180 - 75 * 1.3 - 25} width="50" height="20" fill="#3B82F6" rx="4" />
+                  <text x={70 + 7 * 40} y={180 - 75 * 1.3 - 10} fontSize="12" fill="white" textAnchor="middle">
+                    64.3564
+                  </text>
+                </svg>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Store Performance */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">Performa Toko</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {topProducts.slice(0, 5).map((product, index) => (
-                  <div key={product.id} className="flex items-center justify-between">
+                {storeData.map((store) => (
+                  <div key={store.id} className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium text-blue-600">{index + 1}</span>
-                      </div>
+                      <div className={`w-3 h-3 rounded-full ${store.color}`}></div>
                       <div>
-                        <p className="font-medium text-gray-900">{product.name}</p>
-                        <p className="text-sm text-gray-500">{product.category}</p>
+                        <p className="font-medium text-gray-900">{store.name}</p>
+                        <p className="text-sm text-gray-600">{store.revenue}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-gray-900">{formatNumber(product.totalSold)} sold</p>
-                      <p className="text-sm text-gray-500">{formatCurrency(product.revenue)}</p>
+                      <div className="flex items-center">
+                        <span
+                          className={`text-sm font-medium ${
+                            store.growth.startsWith("+") ? "text-green-600" : "text-red-600"
+                          }`}
+                        >
+                          {store.growth}
+                        </span>
+                        {store.growth.startsWith("+") ? (
+                          <TrendingUp className="h-4 w-4 text-green-500 ml-1" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4 text-red-500 ml-1" />
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500">Growth</p>
                     </div>
                   </div>
                 ))}
@@ -241,123 +353,53 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Store Overview */}
-        <Card className="bg-white">
-          <CardHeader>
-            <CardTitle className="text-gray-900">
-              {selectedStore === "all" ? "Store Overview" : "Store Details"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">Store</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">Daily Revenue</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">Transactions</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">Growth</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredStores.map((store) => (
-                    <tr key={store.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4">
-                        <div>
-                          <p className="font-medium text-gray-900">{store.name}</p>
-                          <p className="text-sm text-gray-500">{store.location}</p>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge
-                          variant={store.status === "active" ? "default" : "secondary"}
-                          className={store.status === "active" ? "bg-green-100 text-green-800" : ""}
-                        >
-                          {store.status}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 font-medium text-gray-900">{formatCurrency(store.dailyRevenue)}</td>
-                      <td className="py-3 px-4 text-gray-600">{formatNumber(Math.round(store.dailyTransactions))}</td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center">
-                          {store.growth > 0 ? (
-                            <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                          ) : (
-                            <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
-                          )}
-                          <span className={getGrowthColor(store.growth)}>
-                            {store.growth > 0 ? "+" : ""}
-                            {store.growth}%
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Link href={`/store/${store.id}`}>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-blue-600 border-blue-200 hover:bg-blue-50 bg-transparent"
-                          >
-                            View Details
-                          </Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Right side - AI Insights */}
+        <div className="lg:col-span-1">
+          <Card className="h-fit">
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+              <CardTitle className="text-lg font-semibold">AI Insights</CardTitle>
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                <Bot className="h-4 w-4 mr-2" />
+                Cek Insights
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-700">
+                    Produk xx akan terjadi melonjakpada bulan ini. Promosi akan meningkatkan keuntungan kita.
+                  </p>
+                </div>
+              </div>
 
-        {/* Quick Actions */}
-        <Card className="bg-white">
-          <CardHeader>
-            <CardTitle className="text-gray-900">Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Link href="/forecasting">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-blue-600 border-blue-200 hover:bg-blue-50 bg-transparent h-12"
-                >
-                  <Target className="w-5 h-5 mr-3" />
-                  Demand Forecasting
+              <div className="space-y-2">
+                <button className="text-sm text-gray-700 hover:text-blue-600 text-left w-full">
+                  Apa promosi terbaik sekarang?
+                </button>
+                <button className="text-sm text-gray-700 hover:text-blue-600 text-left w-full">
+                  Apa promosi sekarang?
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="text"
+                  placeholder="Still got question?"
+                  value={chatMessage}
+                  onChange={(e) => setChatMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <Button onClick={handleSendMessage} size="sm" variant="ghost">
+                  <Send className="h-4 w-4" />
                 </Button>
-              </Link>
-              <Link href="/promotions">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-blue-600 border-blue-200 hover:bg-blue-50 bg-transparent h-12"
-                >
-                  <Users className="w-5 h-5 mr-3" />
-                  Promotion Management
-                </Button>
-              </Link>
-              <Link href="/stock">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-blue-600 border-blue-200 hover:bg-blue-50 bg-transparent h-12"
-                >
-                  <Package className="w-5 h-5 mr-3" />
-                  Stock Management
-                </Button>
-              </Link>
-              <Link href="/pos-integration">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-blue-600 border-blue-200 hover:bg-blue-50 bg-transparent h-12"
-                >
-                  <PieChart className="w-5 h-5 mr-3" />
-                  POS Integration
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )

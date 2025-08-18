@@ -1,26 +1,24 @@
-import { GeistSans } from "geist/font/sans"
-import { GeistMono } from "geist/font/mono"
+import { Inter } from "next/font/google"
 import "./globals.css"
+import Sidebar from "@/components/sidebar"
+
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "Minimarket Sales Dashboard",
-  description: "Dashboard penjualan untuk 7 toko minimarket UMKM",
-  generator: "v0.dev",
+  title: "DATA Dashboard - Minimarket Analytics",
+  description: "Analisis insight terbaik minimarket",
+    generator: 'v0.app'
 }
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <head>
-        <style>{`
-html {
-  font-family: ${GeistSans.style.fontFamily};
-  --font-sans: ${GeistSans.variable};
-  --font-mono: ${GeistMono.variable};
-}
-        `}</style>
-      </head>
-      <body>{children}</body>
+      <body className={inter.className}>
+        <div className="flex h-screen bg-gray-50">
+          <Sidebar />
+          <main className="flex-1 overflow-auto">{children}</main>
+        </div>
+      </body>
     </html>
   )
 }
