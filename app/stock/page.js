@@ -112,7 +112,10 @@ export default function StockManagement() {
   const totalItems = filteredStock.reduce((sum, item) => sum + item.currentStock, 0)
 
   const getStoreShortName = (storeName) => {
-    return storeName.replace("Minimarket ", "")
+    if (storeName.includes("Minimarket ")) {
+      return storeName.substring(11) // Remove "Minimarket " prefix
+    }
+    return storeName
   }
 
   const getMovementIcon = (type) => {
