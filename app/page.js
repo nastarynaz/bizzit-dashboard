@@ -18,6 +18,7 @@ import {
   Calendar,
   MapPin,
   Grid3X3,
+  ArrowRight,
 } from "lucide-react"
 import {
   stores,
@@ -46,6 +47,97 @@ export default function Dashboard() {
     "Elektronik",
     "Pakaian & Aksesoris",
   ]
+
+  const top5Promotions = [
+    {
+      id: 1,
+      product: "Indomie Goreng",
+      category: "Makanan",
+      sku: "SKU001",
+      normalPrice: 3500,
+      discountAmount: "15%",
+      discountType: "Persentase",
+      discountPrice: 2975,
+      startTime: "01/12/2024",
+      endTime: "15/12/2024",
+      duration: "14 hari",
+      potentialRevenue: 2500000,
+      status: "Direkomendasikan",
+    },
+    {
+      id: 2,
+      product: "Aqua 600ml",
+      category: "Minuman",
+      sku: "SKU002",
+      normalPrice: 3000,
+      discountAmount: "10%",
+      discountType: "Persentase",
+      discountPrice: 2700,
+      startTime: "05/12/2024",
+      endTime: "20/12/2024",
+      duration: "15 hari",
+      potentialRevenue: 1800000,
+      status: "Direkomendasikan",
+    },
+    {
+      id: 3,
+      product: "Beras Premium 5kg",
+      category: "Sembako",
+      sku: "SKU003",
+      normalPrice: 65000,
+      discountAmount: "8%",
+      discountType: "Persentase",
+      discountPrice: 59800,
+      startTime: "10/12/2024",
+      endTime: "31/12/2024",
+      duration: "21 hari",
+      potentialRevenue: 5200000,
+      status: "Direkomendasikan",
+    },
+    {
+      id: 4,
+      product: "Minyak Goreng 1L",
+      category: "Sembako",
+      sku: "SKU004",
+      normalPrice: 18000,
+      discountAmount: "12%",
+      discountType: "Persentase",
+      discountPrice: 15840,
+      startTime: "15/12/2024",
+      endTime: "30/12/2024",
+      duration: "15 hari",
+      potentialRevenue: 3100000,
+      status: "Direkomendasikan",
+    },
+    {
+      id: 5,
+      product: "Susu UHT 1L",
+      category: "Minuman",
+      sku: "SKU005",
+      normalPrice: 15000,
+      discountAmount: "20%",
+      discountType: "Persentase",
+      discountPrice: 12000,
+      startTime: "20/12/2024",
+      endTime: "05/01/2025",
+      duration: "16 hari",
+      potentialRevenue: 2800000,
+      status: "Direkomendasikan",
+    },
+  ]
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "Direkomendasikan":
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Direkomendasikan</Badge>
+      case "Aktif":
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Aktif</Badge>
+      case "Berakhir":
+        return <Badge variant="secondary">Berakhir</Badge>
+      default:
+        return <Badge variant="outline">{status}</Badge>
+    }
+  }
 
   // Filter data based on selected store
   const getFilteredAnalytics = () => {
@@ -275,6 +367,63 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Top 5 Produk yang Dapat Dipromosikan</CardTitle>
+            <Link href="/promotions">
+              <Button variant="outline" className="gap-2 bg-transparent">
+                Lihat Semua
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">NO</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">PRODUK</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">KATEGORI</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">SKU</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">HARGA NORMAL</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">BESAR DISKON</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">HARGA DISKON</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">DURASI</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">POTENSIAL REVENUE</th>
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">STATUS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {top5Promotions.map((product, index) => (
+                  <tr key={product.id} className="border-b hover:bg-muted/50">
+                    <td className="p-3 text-sm">{index + 1}</td>
+                    <td className="p-3">
+                      <div>
+                        <div className="font-medium">{product.product}</div>
+                        <div className="text-sm text-muted-foreground">{product.category}</div>
+                      </div>
+                    </td>
+                    <td className="p-3 text-sm">{product.category}</td>
+                    <td className="p-3 text-sm font-mono">{product.sku}</td>
+                    <td className="p-3 text-sm">{formatCurrency(product.normalPrice)}</td>
+                    <td className="p-3 text-sm font-medium">{product.discountAmount}</td>
+                    <td className="p-3 text-sm font-medium text-blue-600">{formatCurrency(product.discountPrice)}</td>
+                    <td className="p-3 text-sm">{product.duration}</td>
+                    <td className="p-3 text-sm font-medium text-green-600">
+                      {formatCurrency(product.potentialRevenue)}
+                    </td>
+                    <td className="p-3">{getStatusBadge(product.status)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Store Overview */}
       <Card>

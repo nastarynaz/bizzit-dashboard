@@ -4,234 +4,230 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
 import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Download } from "lucide-react"
 import { formatCurrency } from "@/lib/database"
-import { getPromotionRecommendations, getActivePromotions } from "@/lib/ai"
 
 export default function PromotionsPage() {
   const [activeTab, setActiveTab] = useState("recommendations")
 
-  const promotionRecommendations = getPromotionRecommendations()
-  const activePromotions = getActivePromotions()
+  // Sample data for promotable products
+  const promotableProducts = [
+    {
+      id: 1,
+      product: "Indomie Goreng",
+      category: "Makanan",
+      sku: "SKU001",
+      normalPrice: 3500,
+      discountAmount: "15%",
+      discountType: "Persentase",
+      discountPrice: 2975,
+      startTime: "01/12/2024",
+      endTime: "15/12/2024",
+      duration: "14 hari",
+      potentialRevenue: 2500000,
+      status: "Direkomendasikan",
+    },
+    {
+      id: 2,
+      product: "Aqua 600ml",
+      category: "Minuman",
+      sku: "SKU002",
+      normalPrice: 3000,
+      discountAmount: "10%",
+      discountType: "Persentase",
+      discountPrice: 2700,
+      startTime: "05/12/2024",
+      endTime: "20/12/2024",
+      duration: "15 hari",
+      potentialRevenue: 1800000,
+      status: "Direkomendasikan",
+    },
+    {
+      id: 3,
+      product: "Beras Premium 5kg",
+      category: "Sembako",
+      sku: "SKU003",
+      normalPrice: 65000,
+      discountAmount: "8%",
+      discountType: "Persentase",
+      discountPrice: 59800,
+      startTime: "10/12/2024",
+      endTime: "31/12/2024",
+      duration: "21 hari",
+      potentialRevenue: 5200000,
+      status: "Direkomendasikan",
+    },
+    {
+      id: 4,
+      product: "Minyak Goreng 1L",
+      category: "Sembako",
+      sku: "SKU004",
+      normalPrice: 18000,
+      discountAmount: "12%",
+      discountType: "Persentase",
+      discountPrice: 15840,
+      startTime: "15/12/2024",
+      endTime: "30/12/2024",
+      duration: "15 hari",
+      potentialRevenue: 3100000,
+      status: "Direkomendasikan",
+    },
+    {
+      id: 5,
+      product: "Susu UHT 1L",
+      category: "Minuman",
+      sku: "SKU005",
+      normalPrice: 15000,
+      discountAmount: "20%",
+      discountType: "Persentase",
+      discountPrice: 12000,
+      startTime: "20/12/2024",
+      endTime: "05/01/2025",
+      duration: "16 hari",
+      potentialRevenue: 2800000,
+      status: "Direkomendasikan",
+    },
+    {
+      id: 6,
+      product: "Sabun Mandi",
+      category: "Kebersihan",
+      sku: "SKU006",
+      normalPrice: 8500,
+      discountAmount: "25%",
+      discountType: "Persentase",
+      discountPrice: 6375,
+      startTime: "25/12/2024",
+      endTime: "10/01/2025",
+      duration: "16 hari",
+      potentialRevenue: 1500000,
+      status: "Direkomendasikan",
+    },
+  ]
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "Direkomendasikan":
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Direkomendasikan</Badge>
+      case "Aktif":
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Aktif</Badge>
+      case "Berakhir":
+        return <Badge variant="secondary">Berakhir</Badge>
+      default:
+        return <Badge variant="outline">{status}</Badge>
+    }
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4">
       <div className="flex items-center gap-2">
         <SidebarTrigger />
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">AI Promotion Recommendations</h1>
-          <p className="text-muted-foreground">
-            Automated promotion suggestions based on sales data and demand forecasting
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight">Promotion Management</h1>
+          <p className="text-muted-foreground">Kelola promosi dan rekomendasi untuk meningkatkan penjualan</p>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="recommendations">AI Recommendations</TabsTrigger>
-          <TabsTrigger value="active">Active Promotions</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger
+            value="recommendations"
+            className="data-[state=active]:bg-blue-500 data-[state=active]:text-white"
+          >
+            Rekomendasi Promosi
+          </TabsTrigger>
+          <TabsTrigger value="calendar">Kalender Promosi</TabsTrigger>
+          <TabsTrigger value="active">Promosi Aktif</TabsTrigger>
         </TabsList>
 
-        {/* AI Recommendations Tab */}
         <TabsContent value="recommendations" className="space-y-4">
-          {promotionRecommendations.map((recommendation, index) => (
-            <div key={index} className="grid grid-cols-1 lg:grid-cols-3 gap-4 p-4 bg-card rounded-lg border">
-              {/* Product Identification */}
-              <Card className="bg-green-50 border-green-200">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <div className="bg-green-100 p-2 rounded-lg mr-3 text-sm">
-                      <span className="text-green-800 font-semibold">Identifikasi Produk</span>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label className="font-medium">Nama produk</Label>
-                    <div className="p-3 bg-white rounded border mt-1">{recommendation.productName}</div>
-                  </div>
-                  <div>
-                    <Label className="font-medium">SKU</Label>
-                    <div className="p-3 bg-white rounded border mt-1">{recommendation.sku}</div>
-                  </div>
-                  <div>
-                    <Label className="font-medium">Kategori</Label>
-                    <div className="p-3 bg-white rounded border mt-1">{recommendation.category}</div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* AI Promotion Analysis */}
-              <Card className="bg-green-50 border-green-200">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <div className="bg-green-100 p-2 rounded-lg mr-3 text-sm">
-                      <span className="text-green-800 font-semibold">AI Analysis</span>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label className="font-medium">Recommendation Status</Label>
-                    <div className="mt-1">
-                      <Badge variant={recommendation.isRecommended ? "default" : "secondary"}>
-                        {recommendation.isRecommended ? "Highly Recommended" : "Not Recommended"}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="font-medium">AI Confidence</Label>
-                    <div className="p-3 bg-white rounded border mt-1">{recommendation.confidence}%</div>
-                  </div>
-                  <div>
-                    <Label className="font-medium">Reason</Label>
-                    <div className="p-3 bg-white rounded border mt-1 text-sm">{recommendation.reason}</div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Recommended Promotion Details */}
-              <Card className="bg-green-50 border-green-200">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <div className="bg-green-100 p-2 rounded-lg mr-3 text-sm">
-                      <span className="text-green-800 font-semibold">Recommended Promotion</span>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label className="font-medium">Tipe promosi</Label>
-                    <div className="p-3 bg-white rounded border mt-1">{recommendation.promoType}</div>
-                  </div>
-                  <div>
-                    <Label className="font-medium">Besaran promosi</Label>
-                    <div className="p-3 bg-white rounded border mt-1">{recommendation.discountPercent}%</div>
-                  </div>
-                  <div>
-                    <Label className="font-medium">Harga Normal</Label>
-                    <div className="p-3 bg-white rounded border mt-1">{formatCurrency(recommendation.normalPrice)}</div>
-                  </div>
-                  <div>
-                    <Label className="font-medium">Harga Promo</Label>
-                    <div className="p-3 bg-white rounded border mt-1 font-semibold text-blue-600">
-                      {formatCurrency(recommendation.promoPrice)}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* AI Predictions */}
-              <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Time Recommendations */}
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <div className="bg-blue-100 p-2 rounded-lg mr-3 text-sm">
-                        <span className="text-blue-800 font-semibold">Optimal Timing</span>
-                      </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Label className="font-medium">Recommended Start</Label>
-                      <div className="p-3 bg-white rounded border mt-1">{recommendation.recommendedStartDate}</div>
-                    </div>
-                    <div>
-                      <Label className="font-medium">Recommended End</Label>
-                      <div className="p-3 bg-white rounded border mt-1">{recommendation.recommendedEndDate}</div>
-                    </div>
-                    <div>
-                      <Label className="font-medium">Optimal Duration</Label>
-                      <div className="p-3 bg-white rounded border mt-1">{recommendation.optimalDuration}</div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* AI Predictions */}
-                <Card className="bg-purple-50 border-purple-200">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <div className="bg-purple-100 p-2 rounded-lg mr-3 text-sm">
-                        <span className="text-purple-800 font-semibold">AI Predictions</span>
-                      </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Label className="font-medium">Predicted Sales Increase</Label>
-                      <div className="p-3 bg-white rounded border mt-1 font-semibold text-green-600">
-                        +{recommendation.predictedSalesIncrease} units
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="font-medium">Expected Revenue</Label>
-                      <div className="p-3 bg-white rounded border mt-1 font-semibold text-blue-600">
-                        {formatCurrency(recommendation.expectedRevenue)}
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="font-medium">Predicted Profit</Label>
-                      <div className="p-3 bg-white rounded border mt-1 font-semibold text-purple-600">
-                        {formatCurrency(recommendation.predictedProfit)}
-                      </div>
-                    </div>
-                    <div className="pt-2">
-                      <div className="flex items-center justify-center">
-                        <div className="text-center">
-                          <div className="text-2xl">↗️</div>
-                          <div className="bg-green-100 p-3 rounded-lg mt-2">
-                            <span className="text-green-800 font-semibold">ROI: {recommendation.expectedROI}%</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Produk yang Dapat Dipromosikan</CardTitle>
+                <Button variant="outline" className="gap-2 bg-transparent">
+                  <Download className="h-4 w-4" />
+                  Export Data
+                </Button>
               </div>
-            </div>
-          ))}
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-3 text-sm font-medium text-muted-foreground">NO</th>
+                      <th className="text-left p-3 text-sm font-medium text-muted-foreground">PRODUK</th>
+                      <th className="text-left p-3 text-sm font-medium text-muted-foreground">KATEGORI</th>
+                      <th className="text-left p-3 text-sm font-medium text-muted-foreground">SKU</th>
+                      <th className="text-left p-3 text-sm font-medium text-muted-foreground">HARGA NORMAL</th>
+                      <th className="text-left p-3 text-sm font-medium text-muted-foreground">BESAR DISKON</th>
+                      <th className="text-left p-3 text-sm font-medium text-muted-foreground">TIPE DISKON</th>
+                      <th className="text-left p-3 text-sm font-medium text-muted-foreground">HARGA DISKON</th>
+                      <th className="text-left p-3 text-sm font-medium text-muted-foreground">WAKTU MULAI</th>
+                      <th className="text-left p-3 text-sm font-medium text-muted-foreground">WAKTU SELESAI</th>
+                      <th className="text-left p-3 text-sm font-medium text-muted-foreground">DURASI</th>
+                      <th className="text-left p-3 text-sm font-medium text-muted-foreground">POTENSIAL REVENUE</th>
+                      <th className="text-left p-3 text-sm font-medium text-muted-foreground">STATUS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {promotableProducts.map((product, index) => (
+                      <tr key={product.id} className="border-b hover:bg-muted/50">
+                        <td className="p-3 text-sm">{index + 1}</td>
+                        <td className="p-3">
+                          <div>
+                            <div className="font-medium">{product.product}</div>
+                            <div className="text-sm text-muted-foreground">{product.category}</div>
+                          </div>
+                        </td>
+                        <td className="p-3 text-sm">{product.category}</td>
+                        <td className="p-3 text-sm font-mono">{product.sku}</td>
+                        <td className="p-3 text-sm">{formatCurrency(product.normalPrice)}</td>
+                        <td className="p-3 text-sm font-medium">{product.discountAmount}</td>
+                        <td className="p-3 text-sm">{product.discountType}</td>
+                        <td className="p-3 text-sm font-medium text-blue-600">
+                          {formatCurrency(product.discountPrice)}
+                        </td>
+                        <td className="p-3 text-sm">{product.startTime}</td>
+                        <td className="p-3 text-sm">{product.endTime}</td>
+                        <td className="p-3 text-sm">{product.duration}</td>
+                        <td className="p-3 text-sm font-medium text-green-600">
+                          {formatCurrency(product.potentialRevenue)}
+                        </td>
+                        <td className="p-3">{getStatusBadge(product.status)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        {/* Active Promotions Tab */}
+        <TabsContent value="calendar" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Kalender Promosi</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-muted-foreground">Kalender promosi akan ditampilkan di sini</div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="active" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {activePromotions.map((promo) => (
-              <Card key={promo.id} className="border-blue-200">
-                <CardHeader>
-                  <CardTitle className="text-lg">{promo.productName}</CardTitle>
-                  <Badge variant="default" className="w-fit">
-                    {promo.type}
-                  </Badge>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Discount:</span>
-                    <span className="font-semibold text-red-600">{promo.discount}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Normal Price:</span>
-                    <span className="line-through text-muted-foreground">{formatCurrency(promo.originalPrice)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Promo Price:</span>
-                    <span className="font-semibold text-blue-600">{formatCurrency(promo.promoPrice)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Ends:</span>
-                    <span className="text-sm">{promo.endDate}</span>
-                  </div>
-                  <div className="pt-2 border-t">
-                    <div className="flex justify-between text-sm">
-                      <span>Performance:</span>
-                      <span className="font-semibold text-green-600">+{promo.salesIncrease}% sales</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Promosi Aktif</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-muted-foreground">
+                Daftar promosi yang sedang berjalan akan ditampilkan di sini
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
