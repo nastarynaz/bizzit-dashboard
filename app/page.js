@@ -29,7 +29,6 @@ import { formatCurrency, formatNumber } from "@/lib/utils-format";
 export default function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState("1w");
   const [selectedStore, setSelectedStore] = useState("all");
-  const [selectedCategory, setSelectedCategory] = useState("all");
   const [chatInput, setChatInput] = useState("");
   
   // State for API data
@@ -287,14 +286,6 @@ export default function Dashboard() {
   };
   const topProducts = []; // Empty since we're not using dummy data
 
-  const categories = [
-    "Makanan & Minuman",
-    "Kebutuhan Rumah Tangga",
-    "Kesehatan & Kecantikan",
-    "Elektronik",
-    "Pakaian & Aksesoris",
-  ];
-
   const generateSalesChartData = () => {
     // Return empty data since no sales data is available
     const baseData = [
@@ -347,13 +338,6 @@ export default function Dashboard() {
 
   const getFilteredPromotions = () => {
     let filtered = promotions;
-
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter((promotion) => {
-        return promotion.category.toLowerCase().includes(selectedCategory.toLowerCase()) || 
-               selectedCategory === "Makanan & Minuman";
-      });
-    }
 
     return filtered; // Show all data
   };
@@ -485,23 +469,6 @@ export default function Dashboard() {
               <SelectItem value="5">Store 5</SelectItem>
               <SelectItem value="6">Store 6</SelectItem>
               <SelectItem value="7">Store 7</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Categories:</label>
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger>
-              <SelectValue placeholder="All" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
             </SelectContent>
           </Select>
         </div>
