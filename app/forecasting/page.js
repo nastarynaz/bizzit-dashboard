@@ -60,6 +60,12 @@ const accuracyMetrics = [
 ]
 
 export default function DemandForecasting() {
+  // Initialize products as empty array to handle no data gracefully
+  const products = [];
+  
+  // Initialize demandForecast as empty array to handle no data gracefully
+  const demandForecast = [];
+  
   const getTrendBadgeClass = (trend) => {
     if (trend === "Naik") return "bg-green-100 text-green-800"
     if (trend === "Turun") return "bg-red-100 text-red-800"
@@ -205,36 +211,43 @@ export default function DemandForecasting() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {demandForecast.map((forecast) => {
-                    let dotColor = "bg-gray-500"
-                    if (forecast.currentTrend === "Naik") dotColor = "bg-green-500"
-                    if (forecast.currentTrend === "Turun") dotColor = "bg-red-500"
+                  {demandForecast.length > 0 ? (
+                    demandForecast.map((forecast) => {
+                      let dotColor = "bg-gray-500"
+                      if (forecast.currentTrend === "Naik") dotColor = "bg-green-500"
+                      if (forecast.currentTrend === "Turun") dotColor = "bg-red-500"
 
-                    return (
-                      <div
-                        key={forecast.productId}
-                        className="flex items-center justify-between p-3 bg-muted rounded-lg"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-3 h-3 rounded-full ${dotColor}`} />
-                          <div>
-                            <div className="font-medium">{forecast.productName}</div>
-                            <div className="text-sm text-muted-foreground">
-                              Accuracy: {(forecast.forecastAccuracy * 100).toFixed(1)}%
+                      return (
+                        <div
+                          key={forecast.productId}
+                          className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-3 h-3 rounded-full ${dotColor}`} />
+                            <div>
+                              <div className="font-medium">{forecast.productName}</div>
+                              <div className="text-sm text-muted-foreground">
+                                Accuracy: {(forecast.forecastAccuracy * 100).toFixed(1)}%
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold">{formatNumber(forecast.nextMonthPrediction)} units</div>
+                            <div className={`text-sm flex items-center ${getTrendColor(forecast.currentTrend)}`}>
+                              {forecast.currentTrend === "Naik" && <TrendingUp className="w-3 h-3 mr-1" />}
+                              {forecast.currentTrend === "Turun" && <TrendingDown className="w-3 h-3 mr-1" />}
+                              {forecast.currentTrend}
                             </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-semibold">{formatNumber(forecast.nextMonthPrediction)} units</div>
-                          <div className={`text-sm flex items-center ${getTrendColor(forecast.currentTrend)}`}>
-                            {forecast.currentTrend === "Naik" && <TrendingUp className="w-3 h-3 mr-1" />}
-                            {forecast.currentTrend === "Turun" && <TrendingDown className="w-3 h-3 mr-1" />}
-                            {forecast.currentTrend}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })
+                  ) : (
+                    <div className="text-center py-8">
+                      <Package className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-muted-foreground">No forecast data available</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -285,17 +298,18 @@ export default function DemandForecasting() {
         {/* Product Analysis Tab */}
         <TabsContent value="products" className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
-            {demandForecast.map((forecast) => (
-              <Card key={forecast.productId}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>{forecast.productName}</CardTitle>
-                      <CardDescription>Detailed demand analysis and predictions</CardDescription>
+            {demandForecast.length > 0 ? (
+              demandForecast.map((forecast) => (
+                <Card key={forecast.productId}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle>{forecast.productName}</CardTitle>
+                        <CardDescription>Detailed demand analysis and predictions</CardDescription>
+                      </div>
+                      <Badge className={getTrendBadgeClass(forecast.currentTrend)}>{forecast.currentTrend}</Badge>
                     </div>
-                    <Badge className={getTrendBadgeClass(forecast.currentTrend)}>{forecast.currentTrend}</Badge>
-                  </div>
-                </CardHeader>
+                  </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Forecast Chart */}
@@ -349,7 +363,20 @@ export default function DemandForecasting() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            ))
+            ) : (
+              <Card>
+                <CardContent className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Product Data Available</h3>
+                    <p className="text-muted-foreground">
+                      Product forecasting data will appear here when available.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
 
