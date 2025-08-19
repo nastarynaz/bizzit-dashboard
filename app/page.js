@@ -31,6 +31,9 @@ export default function Dashboard() {
   const [selectedStore, setSelectedStore] = useState("all");
   const [chatInput, setChatInput] = useState("");
   
+  // Separate state for sales chart period (independent from main dashboard filtering)
+  const [salesChartPeriod, setSalesChartPeriod] = useState("1w");
+  
   // State for API data
   const [promotions, setPromotions] = useState([]);
   const [isLoadingPromotions, setIsLoadingPromotions] = useState(true);
@@ -209,7 +212,7 @@ export default function Dashboard() {
     fetchAnalytics();
   }, [selectedPeriod, selectedStore]); // Re-fetch when period or store changes
 
-  // Fetch sales chart data from API
+  // Fetch sales chart data from API (uses separate period state)
   useEffect(() => {
     const fetchSalesChartData = async () => {
       try {
@@ -218,12 +221,12 @@ export default function Dashboard() {
 
         let response;
         
-        if (selectedPeriod === '1w' || selectedPeriod === '1m') {
+        if (salesChartPeriod === '1w' || salesChartPeriod === '1m') {
           // Use daily revenue data for short periods
           let endDate = new Date('2025-02-28');
           let startDate = new Date('2025-02-01');
 
-          if (selectedPeriod === '1w') {
+          if (salesChartPeriod === '1w') {
             startDate = new Date('2025-02-22');
             endDate = new Date('2025-02-28');
           }
@@ -273,11 +276,11 @@ export default function Dashboard() {
           if (response.status === 'success' && response.data?.chart_data && response.data.chart_data.length > 0) {
             let weeklyData = response.data.chart_data;
             
-            // Filter data based on selected period
-            if (selectedPeriod === '3m') {
+            // Filter data based on sales chart period
+            if (salesChartPeriod === '3m') {
               // Last 12 weeks (3 months)
               weeklyData = weeklyData.slice(-12);
-            } else if (selectedPeriod === '1y') {
+            } else if (salesChartPeriod === '1y') {
               // Last 52 weeks (1 year)
               weeklyData = weeklyData.slice(-52);
             }
@@ -312,7 +315,7 @@ export default function Dashboard() {
     };
 
     fetchSalesChartData();
-  }, [selectedPeriod, selectedStore]); // Re-fetch when period or store changes
+  }, [salesChartPeriod, selectedStore]); // Re-fetch when sales chart period or store changes
 
   // Helper function to calculate duration between two dates
   const calculateDuration = (startDate, endDate) => {
@@ -528,6 +531,17 @@ export default function Dashboard() {
       all: "sepanjang waktu",
     };
     return labels[selectedPeriod] || "periode terpilih";
+  };
+
+  const getSalesChartPeriodLabel = () => {
+    const labels = {
+      "1w": "minggu ini",
+      "1m": "bulan ini", 
+      "3m": "3 bulan terakhir",
+      "1y": "tahun ini",
+      all: "sepanjang waktu",
+    };
+    return labels[salesChartPeriod] || "periode terpilih";
   };
 
   return (
@@ -837,11 +851,30 @@ export default function Dashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Sales Details</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Sales performance for {getPeriodLabel()}
-            {selectedStore !== "all" && ` - Store ID ${selectedStore}`}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Sales Details</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Sales performance for {getSalesChartPeriodLabel()}
+                {selectedStore !== "all" && ` - Store ID ${selectedStore}`}
+              </p>
+            </div>
+            <div className="flex gap-2 items-center">
+              <span className="text-sm text-muted-foreground">Period:</span>
+              <Select value={salesChartPeriod} onValueChange={setSalesChartPeriod}>
+                <SelectTrigger className="w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1w">1 Week</SelectItem>
+                  <SelectItem value="1m">1 Month</SelectItem>
+                  <SelectItem value="3m">3 Months</SelectItem>
+                  <SelectItem value="1y">1 Year</SelectItem>
+                  <SelectItem value="all">All Time</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoadingSalesChart ? (
