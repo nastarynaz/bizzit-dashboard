@@ -11,7 +11,7 @@ import { formatCurrency } from "@/lib/database";
 
 export default function PromotionsPage() {
   const [activeTab, setActiveTab] = useState("recommendations");
-  const [currentDate, setCurrentDate] = useState(new Date(2019, 9)); // October 2019
+  const [currentDate, setCurrentDate] = useState(new Date()); // Current date (today)
   const [calendarView, setCalendarView] = useState("Month");
 
   // State for API data
@@ -134,33 +134,87 @@ export default function PromotionsPage() {
     }
   };
 
-  const calendarEvents = [
-    {
-      id: 1,
-      title: "Design Conference",
-      date: 2,
-      color: "bg-purple-200 text-purple-800",
-    },
-    {
-      id: 2,
-      title: "Weekend Festival",
-      date: 16,
-      color: "bg-pink-200 text-pink-800",
-    },
-    {
-      id: 3,
-      title: "Glastonbury Festival",
-      date: 20,
-      color: "bg-orange-200 text-orange-800",
-      span: 2,
-    },
-    {
-      id: 4,
-      title: "Glastonbury Festival",
-      date: 24,
-      color: "bg-blue-200 text-blue-800",
-    },
-  ];
+  // Generate calendar events from active promotions
+  const generateCalendarEvents = () => {
+    const activeProducts = products.filter(product => product.status === "aktif");
+    const events = [];
+    
+    activeProducts.forEach(product => {
+      // Parse start and end dates
+      const startDate = product.startTime !== "-" ? parseDate(product.startTime) : null;
+      const endDate = product.endTime !== "-" ? parseDate(product.endTime) : null;
+      
+      if (startDate && startDate.getMonth() === currentDate.getMonth() && startDate.getFullYear() === currentDate.getFullYear()) {
+        events.push({
+          id: `start-${product.id}`,
+          title: `${product.product} (Mulai)`,
+          date: startDate.getDate(),
+          color: "bg-green-200 text-green-800",
+          type: "start",
+          product: product
+        });
+      }
+      
+      if (endDate && endDate.getMonth() === currentDate.getMonth() && endDate.getFullYear() === currentDate.getFullYear()) {
+        events.push({
+          id: `end-${product.id}`,
+          title: `${product.product} (Selesai)`,
+          date: endDate.getDate(),
+          color: "bg-red-200 text-red-800",
+          type: "end",
+          product: product
+        });
+      }
+      
+      // Show active promotion period
+      if (startDate && endDate) {
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth();
+        
+        // Check if promotion spans across current month
+        if ((startDate.getFullYear() < currentYear || 
+            (startDate.getFullYear() === currentYear && startDate.getMonth() <= currentMonth)) &&
+            (endDate.getFullYear() > currentYear || 
+            (endDate.getFullYear() === currentYear && endDate.getMonth() >= currentMonth))) {
+          
+          // Add event for active promotion in current month
+          const startDay = startDate.getMonth() === currentMonth ? startDate.getDate() : 1;
+          const endDay = endDate.getMonth() === currentMonth ? endDate.getDate() : new Date(currentYear, currentMonth + 1, 0).getDate();
+          
+          for (let day = startDay; day <= endDay; day++) {
+            events.push({
+              id: `active-${product.id}-${day}`,
+              title: `${product.product}`,
+              date: day,
+              color: "bg-blue-200 text-blue-800",
+              type: "active",
+              product: product
+            });
+          }
+        }
+      }
+    });
+    
+    return events;
+  };
+
+  // Helper function to parse Indonesian date format (DD/MM/YYYY)
+  const parseDate = (dateString) => {
+    if (!dateString || dateString === "-") return null;
+    
+    try {
+      const parts = dateString.split('/');
+      if (parts.length === 3) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+        const year = parseInt(parts[2], 10);
+        return new Date(year, month, day);
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
+  };
 
   const toggleStatus = (productId) => {
     // Find the product to get current status
@@ -223,6 +277,10 @@ export default function PromotionsPage() {
     setCurrentDate(newDate);
   };
 
+  const goToToday = () => {
+    setCurrentDate(new Date());
+  };
+
   const monthNames = [
     "January",
     "February",
@@ -260,23 +318,41 @@ export default function PromotionsPage() {
   const renderCalendarDay = (day) => {
     const dayNumber = day.getDate();
     const isCurrentMonth = day.getMonth() === currentDate.getMonth();
-    const event = calendarEvents.find(
+    const calendarEvents = generateCalendarEvents();
+    const dayEvents = calendarEvents.filter(
       (e) => e.date === dayNumber && isCurrentMonth
     );
+
+    // Check if this is today
+    const today = new Date();
+    const isToday = day.toDateString() === today.toDateString();
 
     return (
       <div
         key={day.toISOString()}
-        className={`min-h-20 p-1 border border-gray-100 ${
-          !isCurrentMonth ? "text-gray-300" : ""
-        }`}
+        className={`min-h-24 p-1 border border-gray-100 ${
+          !isCurrentMonth ? "text-gray-300 bg-gray-50" : "bg-white"
+        } ${isToday ? "bg-blue-50 border-blue-200" : ""}`}
       >
-        <div className="text-sm font-medium mb-1">{dayNumber}</div>
-        {event && (
-          <div className={`text-xs p-1 rounded ${event.color} truncate`}>
-            {event.title}
-          </div>
-        )}
+        <div className={`text-sm font-medium mb-1 ${isToday ? "text-blue-600 font-bold" : ""}`}>
+          {dayNumber}
+        </div>
+        <div className="space-y-1">
+          {dayEvents.slice(0, 3).map((event, index) => (
+            <div 
+              key={event.id} 
+              className={`text-xs p-1 rounded ${event.color} truncate`}
+              title={`${event.title} - ${event.product?.category || ''}`}
+            >
+              {event.title}
+            </div>
+          ))}
+          {dayEvents.length > 3 && (
+            <div className="text-xs text-gray-500 p-1">
+              +{dayEvents.length - 3} lainnya
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -456,7 +532,7 @@ export default function PromotionsPage() {
         <TabsContent value="calendar" className="space-y-4">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={goToToday}>
                 Today
               </Button>
               <div className="flex items-center gap-4">
@@ -512,6 +588,29 @@ export default function PromotionsPage() {
                 </div>
                 <div className="grid grid-cols-7">
                   {generateCalendarDays().map(renderCalendarDay)}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Calendar Legend */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Keterangan</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded bg-green-200 border border-green-300"></div>
+                    <span className="text-sm">Mulai Promosi</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded bg-blue-200 border border-blue-300"></div>
+                    <span className="text-sm">Periode Promosi Aktif</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded bg-red-200 border border-red-300"></div>
+                    <span className="text-sm">Selesai Promosi</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
