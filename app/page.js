@@ -601,15 +601,15 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
+            <Card className="flex flex-col">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
                   Total Revenue
                 </CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex-1">
                 <div className="text-2xl font-bold">
                   {formatCurrency(filteredAnalytics.totalRevenue)}
                 </div>
@@ -622,14 +622,14 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="flex flex-col">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
                   Total Transactions
                 </CardTitle>
                 <ShoppingCart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex-1">
                 <div className="text-2xl font-bold">
                   {formatNumber(filteredAnalytics.totalTransactions)}
                 </div>
@@ -642,14 +642,14 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="flex flex-col">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
                   Average Order Value
                 </CardTitle>
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex-1">
                 <div className="text-2xl font-bold">
                   {formatCurrency(filteredAnalytics.avgOrderValue)}
                 </div>
@@ -662,14 +662,14 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="flex flex-col">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
                   Active Promotions
                 </CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex-1">
                 <div className="text-2xl font-bold">
                   {activePromotions.length}
                 </div>
@@ -690,8 +690,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="lg:col-span-1">
-          <Card className="h-full">
+        <div className="lg:col-span-1 flex">
+          <Card className="flex-1 flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Bot className="h-5 w-5" />
@@ -701,7 +701,7 @@ export default function Dashboard() {
                 Cek Insight
               </Button>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="flex-1 flex flex-col space-y-4">
               <div className="bg-blue-50 p-4 rounded-lg">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -715,7 +715,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 flex-1">
                 <Button
                   variant="outline"
                   className="w-full justify-start text-left h-auto p-3 bg-transparent"
