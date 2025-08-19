@@ -41,6 +41,11 @@ export default function Dashboard() {
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(true);
   const [analyticsError, setAnalyticsError] = useState(null);
 
+  // State for sales chart data from API
+  const [salesChartData, setSalesChartData] = useState([]);
+  const [isLoadingSalesChart, setIsLoadingSalesChart] = useState(true);
+  const [salesChartError, setSalesChartError] = useState(null);
+
   // Fetch recommendations from API
   useEffect(() => {
     const fetchRecommendations = async () => {
@@ -94,35 +99,36 @@ export default function Dashboard() {
         setAnalyticsError(null);
         
         // Calculate date range based on selected period
-        // For demo purposes, use February 2025 data (where we know data exists)
-        const today = new Date('2025-03-01'); // Use March 1 as "today" for demo
-        let startDate, endDate;
+        // Use February 2025 data range since that's what's available in API
+        let endDate = new Date('2025-02-28');
+        let startDate = new Date('2025-02-01');
         
         switch (selectedPeriod) {
           case "1w":
-            // Last 7 days from March 1, 2025
+            // Last week of February 2025
             startDate = new Date('2025-02-22');
-            endDate = new Date('2025-03-01');
+            endDate = new Date('2025-02-28');
             break;
           case "1m":
-            // February 2025
+            // Full February 2025
             startDate = new Date('2025-02-01');
             endDate = new Date('2025-02-28');
             break;
           case "3m":
-            // Dec 2024 - Feb 2025
-            startDate = new Date('2024-12-01');
+            // Use February as representative month
+            startDate = new Date('2025-02-01');
             endDate = new Date('2025-02-28');
             break;
           case "1y":
-            // 2024 full year
-            startDate = new Date('2024-01-01');
-            endDate = new Date('2024-12-31');
+            // Use February as representative data
+            startDate = new Date('2025-02-01');
+            endDate = new Date('2025-02-28');
             break;
           default:
             // Default to February 2025 data
-            startDate = new Date('2025-02-22');
-            endDate = new Date('2025-03-01');
+            startDate = new Date('2025-02-01');
+            endDate = new Date('2025-02-28');
+            break;
         }
 
         const params = {
@@ -201,6 +207,111 @@ export default function Dashboard() {
     };
 
     fetchAnalytics();
+  }, [selectedPeriod, selectedStore]); // Re-fetch when period or store changes
+
+  // Fetch sales chart data from API
+  useEffect(() => {
+    const fetchSalesChartData = async () => {
+      try {
+        setIsLoadingSalesChart(true);
+        setSalesChartError(null);
+
+        let response;
+        
+        if (selectedPeriod === '1w' || selectedPeriod === '1m') {
+          // Use daily revenue data for short periods
+          let endDate = new Date('2025-02-28');
+          let startDate = new Date('2025-02-01');
+
+          if (selectedPeriod === '1w') {
+            startDate = new Date('2025-02-22');
+            endDate = new Date('2025-02-28');
+          }
+
+          const params = {
+            start_date: startDate.toISOString().split('T')[0],
+            end_date: endDate.toISOString().split('T')[0],
+            period: 'daily'
+          };
+
+          // Add store_id parameter if specific store is selected
+          if (selectedStore !== "all") {
+            const storeId = parseInt(selectedStore);
+            if (storeId >= 1 && storeId <= 7) {
+              params.store_id = storeId;
+            }
+          }
+
+          console.log('Fetching daily revenue data with params:', params);
+          response = await externalAPIClient.getRevenueBreakdown(params);
+          
+          if (response.status === 'success' && response.data?.chart_data && response.data.chart_data.length > 0) {
+            const chartData = response.data.chart_data.map((item) => ({
+              label: new Date(item.period).toLocaleDateString('id-ID', { 
+                month: 'short', 
+                day: 'numeric' 
+              }),
+              value: item.revenue,
+              displayValue: Math.round(item.revenue / 1000000),
+              originalValue: item.revenue,
+              transactions: item.transactions,
+              avgTransaction: item.avg_transaction_value
+            }));
+            
+            setSalesChartData(chartData);
+            console.log('Daily sales chart data loaded:', chartData.length, 'data points');
+          } else {
+            console.warn('No daily sales chart data available');
+            setSalesChartData([]);
+          }
+          
+        } else {
+          // Use weekly trends data for longer periods (3m, 1y, all)
+          console.log('Fetching weekly trends data');
+          response = await externalAPIClient.getAnalyticsWeekly();
+          
+          if (response.status === 'success' && response.data?.chart_data && response.data.chart_data.length > 0) {
+            let weeklyData = response.data.chart_data;
+            
+            // Filter data based on selected period
+            if (selectedPeriod === '3m') {
+              // Last 12 weeks (3 months)
+              weeklyData = weeklyData.slice(-12);
+            } else if (selectedPeriod === '1y') {
+              // Last 52 weeks (1 year)
+              weeklyData = weeklyData.slice(-52);
+            }
+            // For 'all', use all available data
+            
+            const chartData = weeklyData.map((item) => ({
+              label: `W${item.week_in_year}/${item.year.toString().slice(-2)}`, // W1/23, W2/23, etc
+              value: item.transaction_count * 18000, // Estimate revenue: ~18k per transaction
+              displayValue: Math.round((item.transaction_count * 18000) / 1000000),
+              originalValue: item.transaction_count * 18000,
+              transactions: item.transaction_count,
+              avgTransaction: 18000,
+              weekLabel: item.week_label,
+              dateLabel: item.date_label
+            }));
+            
+            setSalesChartData(chartData);
+            console.log('Weekly sales chart data loaded:', chartData.length, 'data points');
+          } else {
+            console.warn('No weekly sales chart data available');
+            setSalesChartData([]);
+          }
+        }
+        
+      } catch (error) {
+        console.error('Error fetching sales chart data:', error);
+        setSalesChartError('Failed to load sales chart data');
+        setSalesChartData([]);
+      } finally {
+        setIsLoadingSalesChart(false);
+      }
+    };
+
+    fetchSalesChartData();
   }, [selectedPeriod, selectedStore]); // Re-fetch when period or store changes
 
   // Helper function to calculate duration between two dates
@@ -399,7 +510,7 @@ export default function Dashboard() {
   const filteredAnalytics = getFilteredAnalytics();
   const filteredPromotions = getFilteredPromotions();
   const activePromotions = getActivePromotions();
-  const salesChartData = generateSalesChartData();
+  const dummySalesChartData = generateSalesChartData(); // Will be replaced by API data
   const filteredTopProducts = getFilteredTopProducts();
 
   const handleChatSubmit = (e) => {
@@ -733,37 +844,213 @@ export default function Dashboard() {
           </p>
         </CardHeader>
         <CardContent>
-          <div className="h-80 relative">
-            <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-xs text-muted-foreground">
-              <span>100%</span>
-              <span>80%</span>
-              <span>60%</span>
-              <span>40%</span>
-              <span>20%</span>
+          {isLoadingSalesChart ? (
+            <div className="h-80 flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="text-sm text-muted-foreground mt-2">Loading sales data...</p>
+              </div>
             </div>
-            <div className="ml-8 h-full flex items-end justify-between">
-              {salesChartData.map((point, index) => (
-                <div
-                  key={index}
-                  className="flex flex-col items-center flex-1 relative"
-                >
-                  <div
-                    className="w-full bg-blue-500 rounded-t transition-all duration-300 ease-in-out relative"
-                    style={{ height: `${point.value}%` }}
-                  >
-                    {point.value > 60 && (
-                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
-                        {point.value}%
+          ) : salesChartError ? (
+            <div className="h-80 flex items-center justify-center">
+              <div className="text-center">
+                <p className="text-sm text-red-500">{salesChartError}</p>
+                <p className="text-xs text-muted-foreground mt-1">Please try refreshing the page</p>
+              </div>
+            </div>
+          ) : salesChartData.length === 0 ? (
+            <div className="h-80 flex items-center justify-center">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">No sales data available</p>
+                <p className="text-xs text-muted-foreground mt-1">Try selecting a different period or store</p>
+              </div>
+            </div>
+          ) : (
+            <div className="h-80 relative">
+              {salesChartData.length > 0 ? (() => {
+                const maxValue = Math.max(...salesChartData.map(p => p.value));
+                const minValue = Math.min(...salesChartData.map(p => p.value));
+                const range = maxValue - minValue;
+                const maxMillion = Math.round(maxValue / 1000000);
+                const minMillion = Math.round(minValue / 1000000);
+                
+                return (
+                  <>
+                    {/* Y-axis labels */}
+                    <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-xs text-muted-foreground w-12">
+                      <span>{maxMillion}M</span>
+                      <span>{Math.round((maxMillion + minMillion * 3) / 4)}M</span>
+                      <span>{Math.round((maxMillion + minMillion) / 2)}M</span>
+                      <span>{Math.round((maxMillion * 3 + minMillion) / 4)}M</span>
+                      <span>{minMillion}M</span>
+                    </div>
+                    
+                    {/* Chart container */}
+                    <div className="ml-14 mr-4 h-full relative">
+                      {/* Grid lines background */}
+                      <div className="absolute inset-0">
+                        {[20, 35, 50, 65, 80].map((yPos, index) => (
+                          <div
+                            key={index}
+                            className="absolute w-full border-t border-gray-100"
+                            style={{ top: `${yPos}%` }}
+                          />
+                        ))}
                       </div>
-                    )}
-                  </div>
-                  <span className="text-xs text-muted-foreground mt-2">
-                    {point.label}
-                  </span>
+                      
+                      {/* SVG Chart */}
+                      <svg 
+                        width="100%" 
+                        height="100%" 
+                        className="absolute inset-0"
+                        style={{ zIndex: 1 }}
+                      >
+                        <defs>
+                          <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2" />
+                            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        
+                        {salesChartData.map((point, index, array) => {
+                          // Calculate position for this point
+                          const xPercent = (index / (array.length - 1)) * 100;
+                          const normalizedValue = range > 0 ? (point.value - minValue) / range : 0.5;
+                          const yPercent = 80 - normalizedValue * 60; // Map to 20%-80% of height
+                          
+                          return (
+                            <g key={index}>
+                              {/* Line to next point */}
+                              {index < array.length - 1 && (() => {
+                                const nextPoint = array[index + 1];
+                                const nextXPercent = ((index + 1) / (array.length - 1)) * 100;
+                                const nextNormalizedValue = range > 0 ? (nextPoint.value - minValue) / range : 0.5;
+                                const nextYPercent = 80 - nextNormalizedValue * 60;
+                                
+                                return (
+                                  <line
+                                    x1={`${xPercent}%`}
+                                    y1={`${yPercent}%`}
+                                    x2={`${nextXPercent}%`}
+                                    y2={`${nextYPercent}%`}
+                                    stroke="#3b82f6"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                  />
+                                );
+                              })()}
+                              
+                              {/* Data point circle */}
+                              <circle
+                                cx={`${xPercent}%`}
+                                cy={`${yPercent}%`}
+                                r="4"
+                                fill="#3b82f6"
+                                stroke="#ffffff"
+                                strokeWidth="2"
+                              />
+                            </g>
+                          );
+                        })}
+                        
+                        {/* Area under curve */}
+                        <path
+                          d={salesChartData.map((point, index, array) => {
+                            const xPercent = (index / (array.length - 1)) * 100;
+                            const normalizedValue = range > 0 ? (point.value - minValue) / range : 0.5;
+                            const yPercent = 80 - normalizedValue * 60;
+                            
+                            if (index === 0) {
+                              return `M ${xPercent}% ${yPercent}%`;
+                            } else if (index === array.length - 1) {
+                              return ` L ${xPercent}% ${yPercent}% L ${xPercent}% 80% L 0% 80% Z`;
+                            } else {
+                              return ` L ${xPercent}% ${yPercent}%`;
+                            }
+                          }).join('')}
+                          fill="url(#areaGradient)"
+                        />
+                      </svg>
+                      
+                      {/* Interactive dots overlay */}
+                      <div className="absolute inset-0" style={{ zIndex: 2 }}>
+                        {salesChartData.map((point, index, array) => {
+                          const xPercent = (index / (array.length - 1)) * 100;
+                          const normalizedValue = range > 0 ? (point.value - minValue) / range : 0.5;
+                          const yPercent = 80 - normalizedValue * 60;
+                          
+                          return (
+                            <div
+                              key={index}
+                              className="absolute group cursor-pointer"
+                              style={{
+                                left: `${xPercent}%`,
+                                top: `${yPercent}%`,
+                                transform: 'translate(-50%, -50%)'
+                              }}
+                            >
+                              {/* Invisible hover area */}
+                              <div className="w-8 h-8 flex items-center justify-center">
+                                {/* Visible dot that grows on hover */}
+                                <div className="w-3 h-3 bg-blue-500 border-2 border-white rounded-full group-hover:w-4 group-hover:h-4 transition-all shadow-sm"></div>
+                              </div>
+                              
+                              {/* Tooltip */}
+                              <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-3 py-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                                <div className="font-semibold">Rp {point.displayValue}M</div>
+                                <div className="text-gray-300">{point.transactions} transaksi</div>
+                                <div className="text-gray-300">{point.label}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      {/* X-axis labels - Smart filtering to avoid overlap */}
+                      <div className="absolute -bottom-6 left-0 right-0 flex justify-between">
+                        {salesChartData
+                          .filter((point, index, array) => {
+                            // Show labels strategically to avoid overlap
+                            if (array.length <= 7) {
+                              // Show all labels if 7 or fewer points
+                              return true;
+                            } else if (array.length <= 14) {
+                              // Show every other label if 8-14 points
+                              return index % 2 === 0;
+                            } else if (array.length <= 28) {
+                              // Show every 4th label if 15-28 points  
+                              return index % 4 === 0 || index === array.length - 1;
+                            } else {
+                              // Show every 8th label for more than 28 points
+                              return index % 8 === 0 || index === array.length - 1;
+                            }
+                          })
+                          .map((point, filteredIndex, filteredArray) => {
+                            // Find original index to maintain proper positioning
+                            const originalIndex = salesChartData.findIndex(p => p.label === point.label);
+                            const xPercent = (originalIndex / (salesChartData.length - 1)) * 100;
+                            
+                            return (
+                              <span 
+                                key={originalIndex} 
+                                className="text-xs text-muted-foreground absolute transform -translate-x-1/2"
+                                style={{ left: `${xPercent}%` }}
+                              >
+                                {point.label}
+                              </span>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  </>
+                );
+              })() : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-muted-foreground">No data available</p>
                 </div>
-              ))}
+              )}
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>
