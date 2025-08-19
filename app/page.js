@@ -129,15 +129,22 @@ export default function Dashboard() {
         const params = {
           start_date: startDate.toISOString().split('T')[0],
           end_date: endDate.toISOString().split('T')[0],
-          period: 'daily'
+          period: selectedPeriod === '1w' ? 'weekly' : selectedPeriod === '1m' ? 'monthly' : 'daily'
         };
 
+        // Add store_id parameter if specific store is selected
         if (selectedStore !== "all") {
-          params.store_id = selectedStore;
+          const storeId = parseInt(selectedStore);
+          // Validate store ID is between 1-7
+          if (storeId >= 1 && storeId <= 7) {
+            params.store_id = storeId;
+          }
         }
 
         // Call API directly using externalAPIClient
         console.log('Fetching business metrics with params:', params);
+        console.log('Selected period:', selectedPeriod);
+        console.log('Selected store:', selectedStore);
         const response = await externalAPIClient.getBusinessMetrics(params);
         console.log('Business metrics response:', response);
         
@@ -470,8 +477,14 @@ export default function Dashboard() {
               <SelectValue placeholder="All" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              {/* No stores available - will be populated from API */}
+              <SelectItem value="all">All Stores</SelectItem>
+              <SelectItem value="1">Store 1</SelectItem>
+              <SelectItem value="2">Store 2</SelectItem>
+              <SelectItem value="3">Store 3</SelectItem>
+              <SelectItem value="4">Store 4</SelectItem>
+              <SelectItem value="5">Store 5</SelectItem>
+              <SelectItem value="6">Store 6</SelectItem>
+              <SelectItem value="7">Store 7</SelectItem>
             </SelectContent>
           </Select>
         </div>

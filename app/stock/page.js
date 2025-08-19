@@ -22,7 +22,15 @@ import {
   Truck,
 } from "lucide-react"
 // Temporary empty data while migrating from database.js
-const stores = [];
+const stores = [
+  { id: 1, name: "Store 1" },
+  { id: 2, name: "Store 2" },
+  { id: 3, name: "Store 3" },
+  { id: 4, name: "Store 4" },
+  { id: 5, name: "Store 5" },
+  { id: 6, name: "Store 6" },
+  { id: 7, name: "Store 7" }
+];
 const products = [];
 const stockLevels = [];
 
