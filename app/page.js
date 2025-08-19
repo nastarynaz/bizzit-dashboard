@@ -207,16 +207,33 @@ export default function Dashboard() {
   };
 
   const togglePromotionStatus = (promotionId) => {
-    setPromotions(
-      promotions.map((promotion) =>
-        promotion.id === promotionId
-          ? {
-              ...promotion,
-              status: promotion.status === "aktif" ? "non aktif" : "aktif",
-            }
-          : promotion
-      )
+    // Find the promotion to get current status
+    const promotion = promotions.find(p => p.id === promotionId);
+    if (!promotion) return;
+    
+    const currentStatus = promotion.status;
+    const newStatus = currentStatus === "aktif" ? "non aktif" : "aktif";
+    const action = newStatus === "aktif" ? "mengaktifkan" : "menonaktifkan";
+    
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Apakah Anda yakin ingin ${action} promosi untuk "${promotion.product}"?\n\n` +
+      `Status akan berubah dari "${currentStatus}" menjadi "${newStatus}".`
     );
+    
+    // Only update if user confirmed
+    if (confirmed) {
+      setPromotions(
+        promotions.map((promo) =>
+          promo.id === promotionId
+            ? {
+                ...promo,
+                status: newStatus,
+              }
+            : promo
+        )
+      );
+    }
   };
 
   const getFilteredPromotions = () => {
