@@ -20,7 +20,7 @@ import {
   ReferenceLine,
 } from "recharts"
 import { TrendingUp, TrendingDown, Target, AlertCircle, CheckCircle, Calendar, Package } from "lucide-react"
-import { demandForecast, products, formatNumber } from "@/lib/database"
+import { formatNumber } from "@/lib/utils-format"
 
 const generateForecastData = (productId) => {
   const baseData = [

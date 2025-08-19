@@ -23,15 +23,8 @@ import {
   Bot,
   Loader2,
 } from "lucide-react";
-import {
-  stores,
-  getOverallAnalytics,
-  getTopProducts,
-  formatCurrency,
-  formatNumber,
-  analyticsData,
-} from "@/lib/database";
 import externalAPIClient from "@/lib/api/external-api";
+import { formatCurrency, formatNumber } from "@/lib/utils-format";
 
 export default function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState("1w");
@@ -43,6 +36,11 @@ export default function Dashboard() {
   const [promotions, setPromotions] = useState([]);
   const [isLoadingPromotions, setIsLoadingPromotions] = useState(true);
   const [promotionsError, setPromotionsError] = useState(null);
+
+  // State for analytics data from API
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(true);
+  const [analyticsError, setAnalyticsError] = useState(null);
 
   // Fetch recommendations from API
   useEffect(() => {
@@ -88,6 +86,116 @@ export default function Dashboard() {
 
     fetchRecommendations();
   }, []); // Only run once on component mount
+
+  // Fetch analytics data from API
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setIsLoadingAnalytics(true);
+        setAnalyticsError(null);
+        
+        // Calculate date range based on selected period
+        // For demo purposes, use February 2025 data (where we know data exists)
+        const today = new Date('2025-03-01'); // Use March 1 as "today" for demo
+        let startDate, endDate;
+        
+        switch (selectedPeriod) {
+          case "1w":
+            // Last 7 days from March 1, 2025
+            startDate = new Date('2025-02-22');
+            endDate = new Date('2025-03-01');
+            break;
+          case "1m":
+            // February 2025
+            startDate = new Date('2025-02-01');
+            endDate = new Date('2025-02-28');
+            break;
+          case "3m":
+            // Dec 2024 - Feb 2025
+            startDate = new Date('2024-12-01');
+            endDate = new Date('2025-02-28');
+            break;
+          case "1y":
+            // 2024 full year
+            startDate = new Date('2024-01-01');
+            endDate = new Date('2024-12-31');
+            break;
+          default:
+            // Default to February 2025 data
+            startDate = new Date('2025-02-22');
+            endDate = new Date('2025-03-01');
+        }
+
+        const params = {
+          start_date: startDate.toISOString().split('T')[0],
+          end_date: endDate.toISOString().split('T')[0],
+          period: 'daily'
+        };
+
+        if (selectedStore !== "all") {
+          params.store_id = selectedStore;
+        }
+
+        // Call API directly using externalAPIClient
+        console.log('Fetching business metrics with params:', params);
+        const response = await externalAPIClient.getBusinessMetrics(params);
+        console.log('Business metrics response:', response);
+        
+        if (response.status === 'success' && response.data) {
+          const { current_period, growth } = response.data;
+          
+          const apiAnalytics = {
+            totalRevenue: current_period.total_revenue || 0,
+            totalProfit: 0, // API doesn't provide profit data yet
+            totalTransactions: current_period.total_transactions || 0,
+            avgOrderValue: Math.round(current_period.average_order_value || 0),
+            monthlyGrowth: growth?.revenue_growth || 0,
+            revenueGrowth: growth?.revenue_growth || 0,
+            transactionsGrowth: growth?.transactions_growth || 0,
+            aovGrowth: growth?.aov_growth || 0,
+            cac: 0, // Not available in API
+            clv: 0, // Not available in API
+            roi: 0, // Not available in API
+            // Raw API data for debugging
+            _apiData: response.data
+          };
+          
+          setAnalyticsData(apiAnalytics);
+        } else {
+          // Use empty fallback data if API response is invalid
+          setAnalyticsData({
+            totalRevenue: 0,
+            totalProfit: 0,
+            totalTransactions: 0,
+            avgOrderValue: 0,
+            monthlyGrowth: 0,
+            revenueGrowth: 0,
+            transactionsGrowth: 0,
+            aovGrowth: 0,
+          });
+        }
+        
+      } catch (error) {
+        console.error('Error fetching analytics:', error);
+        setAnalyticsError(error.message);
+        // Use empty fallback data
+        setAnalyticsData({
+          totalRevenue: 0,
+          totalProfit: 0,
+          totalTransactions: 0,
+          avgOrderValue: 0,
+          monthlyGrowth: 0,
+          revenueGrowth: 0,
+          transactionsGrowth: 0,
+          aovGrowth: 0,
+        });
+      } finally {
+        setIsLoadingAnalytics(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, [selectedPeriod, selectedStore]); // Re-fetch when period or store changes
 
   // Helper function to calculate duration between two dates
   const calculateDuration = (startDate, endDate) => {
@@ -159,8 +267,18 @@ export default function Dashboard() {
     }
   };
 
-  const analytics = getOverallAnalytics();
-  const topProducts = getTopProducts();
+  // Use analytics data from API if available, otherwise use empty fallback
+  const analytics = analyticsData || {
+    totalRevenue: 0,
+    totalProfit: 0,
+    totalTransactions: 0,
+    avgOrderValue: 0,
+    monthlyGrowth: 0,
+    revenueGrowth: 0,
+    transactionsGrowth: 0,
+    aovGrowth: 0,
+  };
+  const topProducts = []; // Empty since we're not using dummy data
 
   const categories = [
     "Makanan & Minuman",
@@ -171,39 +289,23 @@ export default function Dashboard() {
   ];
 
   const generateSalesChartData = () => {
+    // Return empty data since no sales data is available
     const baseData = [
-      { label: "5k", value: 20 },
-      { label: "10k", value: 25 },
-      { label: "15k", value: 30 },
-      { label: "20k", value: 35 },
-      { label: "25k", value: 45 },
-      { label: "30k", value: 55 },
-      { label: "35k", value: 60 },
-      { label: "40k", value: 70 },
-      { label: "45k", value: 65 },
-      { label: "50k", value: 60 },
-      { label: "55k", value: 55 },
-      { label: "60k", value: 45 },
+      { label: "5k", value: 0 },
+      { label: "10k", value: 0 },
+      { label: "15k", value: 0 },
+      { label: "20k", value: 0 },
+      { label: "25k", value: 0 },
+      { label: "30k", value: 0 },
+      { label: "35k", value: 0 },
+      { label: "40k", value: 0 },
+      { label: "45k", value: 0 },
+      { label: "50k", value: 0 },
+      { label: "55k", value: 0 },
+      { label: "60k", value: 0 },
     ];
 
-    const periodMultiplier =
-      {
-        "1w": 0.7,
-        "1m": 1.0,
-        "3m": 1.3,
-        "1y": 1.8,
-        all: 2.0,
-      }[selectedPeriod] || 1.0;
-
-    const storeMultiplier = selectedStore === "all" ? 1.0 : 0.8;
-
-    return baseData.map((point) => ({
-      ...point,
-      value: Math.min(
-        100,
-        Math.round(point.value * periodMultiplier * storeMultiplier)
-      ),
-    }));
+    return baseData;
   };
 
   const togglePromotionStatus = (promotionId) => {
@@ -268,38 +370,9 @@ export default function Dashboard() {
   };
 
   const getFilteredAnalytics = () => {
-    let baseAnalytics = analytics;
-
-    if (selectedStore !== "all") {
-      const storeId = Number.parseInt(selectedStore);
-      const storeAnalytics = analyticsData.byStore[storeId];
-      baseAnalytics = {
-        totalRevenue: storeAnalytics?.revenue || 0,
-        totalTransactions: storeAnalytics?.transactions || 0,
-        avgOrderValue: Math.round(
-          (storeAnalytics?.revenue || 0) / (storeAnalytics?.transactions || 1)
-        ),
-        monthlyGrowth: storeAnalytics?.growth || 0,
-      };
-    }
-
-    const periodMultiplier =
-      {
-        "1w": 0.25,
-        "1m": 1.0,
-        "3m": 3.0,
-        "1y": 12.0,
-        all: 15.0,
-      }[selectedPeriod] || 1.0;
-
-    return {
-      totalRevenue: Math.round(baseAnalytics.totalRevenue * periodMultiplier),
-      totalTransactions: Math.round(
-        baseAnalytics.totalTransactions * periodMultiplier
-      ),
-      avgOrderValue: baseAnalytics.avgOrderValue,
-      monthlyGrowth: baseAnalytics.monthlyGrowth,
-    };
+    // Since we're using API data that's already filtered by the API call,
+    // just return the analytics data as-is
+    return analytics;
   };
 
   const getActivePromotions = () => {
@@ -367,10 +440,7 @@ export default function Dashboard() {
             <p className="text-muted-foreground">
               {selectedStore === "all"
                 ? `Analytics untuk semua toko - ${getPeriodLabel()}`
-                : `Analytics untuk ${
-                    stores.find((s) => s.id === Number.parseInt(selectedStore))
-                      ?.name
-                  } - ${getPeriodLabel()}`}
+                : `Analytics untuk Store ID ${selectedStore} - ${getPeriodLabel()}`}
             </p>
           </div>
         </div>
@@ -401,11 +471,7 @@ export default function Dashboard() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
-              {stores.map((store) => (
-                <SelectItem key={store.id} value={store.id.toString()}>
-                  {store.name}
-                </SelectItem>
-              ))}
+              {/* No stores available - will be populated from API */}
             </SelectContent>
           </Select>
         </div>
@@ -443,8 +509,10 @@ export default function Dashboard() {
                   {formatCurrency(filteredAnalytics.totalRevenue)}
                 </div>
                 <div className="flex items-center text-xs text-muted-foreground">
-                  <TrendingUp className="mr-1 h-4 w-4 text-green-500" />+
-                  {filteredAnalytics.monthlyGrowth.toFixed(1)}% vs last month
+                  <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
+                  {isLoadingAnalytics ? 'Loading...' : (
+                    `${filteredAnalytics.revenueGrowth > 0 ? '+' : ''}${filteredAnalytics.revenueGrowth?.toFixed(1) || '0.0'}% vs last period`
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -462,7 +530,9 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-center text-xs text-muted-foreground">
                   <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
-                  +9.2% vs last month
+                  {isLoadingAnalytics ? 'Loading...' : (
+                    `${filteredAnalytics.transactionsGrowth > 0 ? '+' : ''}${filteredAnalytics.transactionsGrowth?.toFixed(1) || '0.0'}% vs last period`
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -480,7 +550,9 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-center text-xs text-muted-foreground">
                   <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
-                  +2.2% vs last month
+                  {isLoadingAnalytics ? 'Loading...' : (
+                    `${filteredAnalytics.aovGrowth > 0 ? '+' : ''}${filteredAnalytics.aovGrowth?.toFixed(1) || '0.0'}% vs last period`
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -677,11 +749,7 @@ export default function Dashboard() {
           <CardTitle>Sales Details</CardTitle>
           <p className="text-sm text-muted-foreground">
             Sales performance for {getPeriodLabel()}
-            {selectedStore !== "all" &&
-              ` - ${
-                stores.find((s) => s.id === Number.parseInt(selectedStore))
-                  ?.name
-              }`}
+            {selectedStore !== "all" && ` - Store ID ${selectedStore}`}
           </p>
         </CardHeader>
         <CardContent>

@@ -21,7 +21,12 @@ import {
   Clock,
   Truck,
 } from "lucide-react"
-import { stores, products, stockLevels, formatNumber, getStockStatus } from "@/lib/database"
+// Temporary empty data while migrating from database.js
+const stores = [];
+const products = [];
+const stockLevels = [];
+
+import { formatNumber, getStockStatus } from "@/lib/utils-format"
 
 // Enhanced stock data with additional fields
 const enhancedStockData = stockLevels.map((stock) => {

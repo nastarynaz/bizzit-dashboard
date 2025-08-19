@@ -6,17 +6,19 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts"
 import { ArrowLeft, TrendingUp, ShoppingCart, DollarSign, Package, AlertTriangle, CheckCircle } from "lucide-react"
+// Temporary empty data while migrating from database.js
+const stores = [];
+const analyticsData = { byStore: {} };
+const products = [];
+const stockLevels = [];
+const promotions = [];
+
 import {
-  stores,
-  analyticsData,
-  products,
-  stockLevels,
-  promotions,
   formatCurrency,
   formatNumber,
   getGrowthColor,
   getStockStatus,
-} from "@/lib/database"
+} from "@/lib/utils-format"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 

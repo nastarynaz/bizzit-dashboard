@@ -10,7 +10,10 @@ import { Label } from "@/components/ui/label"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts"
 import { Wifi, WifiOff, Activity, RefreshCw, Settings, CheckCircle, AlertCircle, Clock, Zap } from "lucide-react"
-import { stores, formatCurrency, formatNumber } from "@/lib/database"
+// Temporary empty data while migrating from database.js
+const stores = [];
+
+import { formatCurrency, formatNumber } from "@/lib/utils-format"
 
 // Mock POS connection status for each store
 const posConnections = stores.map((store) => ({
