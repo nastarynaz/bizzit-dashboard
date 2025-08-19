@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -21,6 +21,7 @@ import {
   ArrowRight,
   Send,
   Bot,
+  Loader2,
 } from "lucide-react";
 import {
   stores,
@@ -30,90 +31,133 @@ import {
   formatNumber,
   analyticsData,
 } from "@/lib/database";
+import externalAPIClient from "@/lib/api/external-api";
 
 export default function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState("1w");
   const [selectedStore, setSelectedStore] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [chatInput, setChatInput] = useState("");
+  
+  // State for API data
+  const [promotions, setPromotions] = useState([]);
+  const [isLoadingPromotions, setIsLoadingPromotions] = useState(true);
+  const [promotionsError, setPromotionsError] = useState(null);
 
-  const [promotions, setPromotions] = useState([
-    {
-      id: 1,
-      product: "Indomie Goreng",
-      category: "Makanan",
-      sku: "SKU001",
-      normalPrice: 3500,
-      discountAmount: "15%",
-      discountType: "Persentase",
-      discountPrice: 2975,
-      startTime: "01/12/2024",
-      endTime: "15/12/2024",
-      duration: "14 hari",
-      potentialRevenue: 2500000,
-      status: "non aktif",
-    },
-    {
-      id: 2,
-      product: "Aqua 600ml",
-      category: "Minuman",
-      sku: "SKU002",
-      normalPrice: 3000,
-      discountAmount: "10%",
-      discountType: "Persentase",
-      discountPrice: 2700,
-      startTime: "05/12/2024",
-      endTime: "20/12/2024",
-      duration: "15 hari",
-      potentialRevenue: 1800000,
-      status: "non aktif",
-    },
-    {
-      id: 3,
-      product: "Beras Premium 5kg",
-      category: "Sembako",
-      sku: "SKU003",
-      normalPrice: 65000,
-      discountAmount: "8%",
-      discountType: "Persentase",
-      discountPrice: 59800,
-      startTime: "10/12/2024",
-      endTime: "31/12/2024",
-      duration: "21 hari",
-      potentialRevenue: 5200000,
-      status: "aktif",
-    },
-    {
-      id: 4,
-      product: "Minyak Goreng 1L",
-      category: "Sembako",
-      sku: "SKU004",
-      normalPrice: 18000,
-      discountAmount: "12%",
-      discountType: "Persentase",
-      discountPrice: 15840,
-      startTime: "15/12/2024",
-      endTime: "30/12/2024",
-      duration: "15 hari",
-      potentialRevenue: 3100000,
-      status: "non aktif",
-    },
-    {
-      id: 5,
-      product: "Susu UHT 1L",
-      category: "Minuman",
-      sku: "SKU005",
-      normalPrice: 15000,
-      discountAmount: "20%",
-      discountType: "Persentase",
-      discountPrice: 12000,
-      startTime: "20/12/2024",
-      endTime: "05/01/2025",
-      duration: "16 hari",
-      potentialRevenue: 2800000,
-      status: "aktif",
-    },
-  ]);
+  // Fetch recommendations from API
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      try {
+        setIsLoadingPromotions(true);
+        setPromotionsError(null);
+        
+        const response = await fetch('/api/external/recommendations/top?limit=30');
+        const result = await response.json();
+        
+        if (result.success && result.data?.data?.recommendations) {
+          // Transform API data - only use available data, fill missing with "-"
+          const transformedData = result.data.data.recommendations.map((item, index) => ({
+            id: index + 1,
+            product: item.nama_produk || "-",
+            category: item.kategori_produk || "-", 
+            sku: item.kode_sku || "-",
+            normalPrice: item.harga_baseline || "-",
+            normalPriceFormatted: item.harga_baseline_formatted || "-",
+            discountAmount: item.rekomendasi_besaran_persen || "-",
+            discountType: item.rekomendasi_detail || "-",
+            discountPrice: calculateDiscountPrice(item.harga_baseline, item.rekomendasi_besaran_persen),
+            startTime: formatDate(item.start_date),
+            endTime: formatDate(item.end_date),
+            duration: calculateDuration(item.start_date, item.end_date),
+            potentialRevenue: item.rata_rata_uplift_profit_formatted || "-",
+            status: "non aktif", // Default status
+          }));
+          
+          setPromotions(transformedData);
+        } else {
+          setPromotions([]);
+        }
+      } catch (error) {
+        console.error('Error fetching recommendations:', error);
+        setPromotionsError(error.message);
+        setPromotions([]);
+      } finally {
+        setIsLoadingPromotions(false);
+      }
+    };
+
+    fetchRecommendations();
+  }, []); // Only run once on component mount
+
+  // Helper function to calculate duration between two dates
+  const calculateDuration = (startDate, endDate) => {
+    if (!startDate || !endDate || startDate === "-" || endDate === "-") {
+      return "-";
+    }
+    
+    try {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      // Check if dates are valid
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return "-";
+      }
+      
+      const diffTime = Math.abs(end - start);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 0) return "1 hari";
+      if (diffDays === 1) return "1 hari";
+      return `${diffDays} hari`;
+    } catch (error) {
+      return "-";
+    }
+  };
+
+  // Helper function to calculate discount price
+  const calculateDiscountPrice = (baselinePrice, discountRate) => {
+    if (!baselinePrice || !discountRate || baselinePrice === "-" || discountRate === "-") {
+      return "-";
+    }
+    
+    try {
+      // Remove "Rp" and commas from formatted price, then convert to number
+      const cleanPrice = typeof baselinePrice === 'string' 
+        ? parseFloat(baselinePrice.replace(/[Rp\s,]/g, ''))
+        : baselinePrice;
+      
+      // Remove "%" from discount rate and convert to decimal
+      const cleanRate = typeof discountRate === 'string'
+        ? parseFloat(discountRate.replace('%', '')) / 100
+        : discountRate;
+      
+      if (isNaN(cleanPrice) || isNaN(cleanRate)) return "-";
+      
+      const discountPrice = cleanPrice * (1 - cleanRate);
+      return Math.round(discountPrice);
+    } catch (error) {
+      return "-";
+    }
+  };
+
+  // Helper function to format date to Indonesian format
+  const formatDate = (dateString) => {
+    if (!dateString || dateString === "-") return "-";
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "-";
+      
+      return date.toLocaleDateString('id-ID', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric' 
+      });
+    } catch (error) {
+      return "-";
+    }
+  };
 
   const analytics = getOverallAnalytics();
   const topProducts = getTopProducts();
@@ -180,23 +224,12 @@ export default function Dashboard() {
 
     if (selectedCategory !== "all") {
       filtered = filtered.filter((promotion) => {
-        const categoryMap = {
-          "Makanan & Minuman": ["Makanan", "Minuman"],
-          "Kebutuhan Rumah Tangga": ["Sembako", "Kebersihan"],
-        };
-        const matchingCategories = categoryMap[selectedCategory] || [
-          selectedCategory,
-        ];
-        return matchingCategories.includes(promotion.category);
+        return promotion.category.toLowerCase().includes(selectedCategory.toLowerCase()) || 
+               selectedCategory === "Makanan & Minuman";
       });
     }
 
-    if (selectedStore !== "all") {
-      // For demo purposes, we'll show all promotions regardless of store
-      // In a real app, you'd filter based on store-specific inventory
-    }
-
-    return filtered.slice(0, 5); // Show top 5
+    return filtered; // Show all data
   };
 
   const getStatusBadge = (status, promotionId) => {
@@ -253,9 +286,7 @@ export default function Dashboard() {
   };
 
   const getActivePromotions = () => {
-    return getFilteredPromotions().filter(
-      (promotion) => promotion.status === "aktif"
-    );
+    return promotions.filter(promotion => promotion.status === "aktif");
   };
 
   const getFilteredTopProducts = () => {
@@ -534,62 +565,93 @@ export default function Dashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">
-                    No
-                  </th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">
-                    Nama Produk
-                  </th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">
-                    Harga Normal
-                  </th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">
-                    Besar Diskon
-                  </th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">
-                    Harga Diskon
-                  </th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">
-                    Jenis Diskon
-                  </th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">
-                    Durasi Diskon
-                  </th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPromotions.map((product, index) => (
-                  <tr key={product.id} className="border-b hover:bg-muted/50">
-                    <td className="p-3 text-sm">{index + 1}</td>
-                    <td className="p-3 text-sm font-medium">
-                      {product.product}
-                    </td>
-                    <td className="p-3 text-sm">
-                      {formatCurrency(product.normalPrice)}
-                    </td>
-                    <td className="p-3 text-sm font-medium">
-                      {product.discountAmount}
-                    </td>
-                    <td className="p-3 text-sm font-medium text-blue-600">
-                      {formatCurrency(product.discountPrice)}
-                    </td>
-                    <td className="p-3 text-sm">{product.discountType}</td>
-                    <td className="p-3 text-sm">{product.duration}</td>
-                    <td className="p-3">
-                      {getStatusBadge(product.status, product.id)}
-                    </td>
+          {isLoadingPromotions ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <span>Loading recommendations...</span>
+            </div>
+          ) : promotionsError ? (
+            <div className="text-center py-8">
+              <p className="text-red-500 mb-2">Error loading recommendations:</p>
+              <p className="text-sm text-gray-600 mb-4">{promotionsError}</p>
+              <Button 
+                onClick={() => window.location.reload()} 
+                variant="outline"
+                size="sm"
+              >
+                Retry
+              </Button>
+            </div>
+          ) : filteredPromotions.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No recommendations available
+            </div>
+          ) : (
+            <div className="overflow-x-auto max-h-96 overflow-y-auto">
+              <table className="w-full border-collapse">
+                <thead className="sticky top-0 bg-white z-10">
+                  <tr className="border-b">
+                    <th className="text-left p-3 text-sm font-medium text-muted-foreground bg-white">
+                      Kode SKU
+                    </th>
+                    <th className="text-left p-3 text-sm font-medium text-muted-foreground bg-white">
+                      Nama Produk
+                    </th>
+                    <th className="text-left p-3 text-sm font-medium text-muted-foreground bg-white">
+                      Harga Normal
+                    </th>
+                    <th className="text-left p-3 text-sm font-medium text-muted-foreground bg-white">
+                      Besar Diskon
+                    </th>
+                    <th className="text-left p-3 text-sm font-medium text-muted-foreground bg-white">
+                      Harga Diskon
+                    </th>
+                    <th className="text-left p-3 text-sm font-medium text-muted-foreground bg-white">
+                      Jenis Diskon
+                    </th>
+                    <th className="text-left p-3 text-sm font-medium text-muted-foreground bg-white">
+                      Durasi Diskon
+                    </th>
+                    <th className="text-left p-3 text-sm font-medium text-muted-foreground bg-white">
+                      Prediksi Uplift Profit
+                    </th>
+                    <th className="text-left p-3 text-sm font-medium text-muted-foreground bg-white">
+                      Status
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filteredPromotions.map((product, index) => (
+                    <tr key={product.id} className="border-b hover:bg-muted/50">
+                      <td className="p-3 text-sm">
+                        {product.sku}
+                      </td>
+                      <td className="p-3 text-sm font-medium">
+                        {product.product}
+                      </td>
+                      <td className="p-3 text-sm">
+                        {product.normalPriceFormatted || "-"}
+                      </td>
+                      <td className="p-3 text-sm font-medium">
+                        {product.discountAmount}
+                      </td>
+                      <td className="p-3 text-sm font-medium text-blue-600">
+                        {product.discountPrice === "-" ? "-" : formatCurrency(product.discountPrice)}
+                      </td>
+                      <td className="p-3 text-sm">{product.discountType}</td>
+                      <td className="p-3 text-sm">{product.duration}</td>
+                      <td className="p-3 text-sm font-medium text-green-600">
+                        {product.potentialRevenue}
+                      </td>
+                      <td className="p-3">
+                        {getStatusBadge(product.status, product.id)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
