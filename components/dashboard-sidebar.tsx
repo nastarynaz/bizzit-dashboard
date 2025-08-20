@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { BarChart3, TrendingUp, Tag, Package, CreditCard, MessageCircle, Home, Server } from "lucide-react"
+import { getVisibleNavigationItems } from "@/lib/sidebar-visibility-config"
 
 import {
   Sidebar,
@@ -56,6 +57,9 @@ const navigationItems = [
 
 export function DashboardSidebar() {
   const pathname = usePathname()
+  
+  // Get only the visible navigation items based on configuration
+  const visibleNavigationItems = getVisibleNavigationItems(navigationItems)
 
   return (
     <Sidebar>
@@ -73,7 +77,7 @@ export function DashboardSidebar() {
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigationItems.map((item) => (
+              {visibleNavigationItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={pathname === item.url}>
                     <Link href={item.url}>
