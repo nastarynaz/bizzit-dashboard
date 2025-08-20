@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, TrendingUp, Tag, Package, CreditCard, MessageCircle, Home, Server } from "lucide-react"
+import { BarChart3, TrendingUp, Tag, Package, CreditCard, MessageCircle, Home, Server, Bot } from "lucide-react"
 import { getVisibleNavigationItems } from "@/lib/sidebar-visibility-config"
 
 import {
@@ -52,6 +52,11 @@ const navigationItems = [
     title: "Chatbot",
     url: "/chatbot",
     icon: MessageCircle,
+  },
+  {
+    title: "AI API Testing",
+    url: "/ai-api-test",
+    icon: Bot,
   },
 ]
 

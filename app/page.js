@@ -29,7 +29,6 @@ import { formatCurrency, formatNumber } from "@/lib/utils-format";
 export default function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState("1w");
   const [selectedStore, setSelectedStore] = useState("all");
-  const [chatInput, setChatInput] = useState("");
   
   // Separate state for sales chart period (independent from main dashboard filtering)
   const [salesChartPeriod, setSalesChartPeriod] = useState("1w");
@@ -48,6 +47,11 @@ export default function Dashboard() {
   const [salesChartData, setSalesChartData] = useState([]);
   const [isLoadingSalesChart, setIsLoadingSalesChart] = useState(true);
   const [salesChartError, setSalesChartError] = useState(null);
+
+  // AI Chat states
+  const [aiMessages, setAiMessages] = useState([]);
+  const [aiInput, setAiInput] = useState("");
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   // Fetch recommendations from API
   useEffect(() => {
@@ -484,6 +488,115 @@ export default function Dashboard() {
     return promotions.filter(promotion => promotion.status === "aktif");
   };
 
+  // Template questions for AI chat
+  const templateQuestions = [
+    {
+      id: 1,
+      question: "Bagaimana performa penjualan minggu ini?",
+      category: "Performance"
+    },
+    {
+      id: 2,
+      question: "Produk mana yang paling berpotensi untuk dipromosikan?",
+      category: "Recommendations"
+    },
+    {
+      id: 3,
+      question: "Apakah ada tren penurunan atau kenaikan yang signifikan?",
+      category: "Trends"
+    },
+    {
+      id: 4,
+      question: "Berapa prediksi revenue jika menjalankan semua rekomendasi promosi?",
+      category: "Forecast"
+    },
+    {
+      id: 5,
+      question: "Toko mana yang perlu perhatian khusus berdasarkan data ini?",
+      category: "Store Analysis"
+    },
+    {
+      id: 6,
+      question: "Strategi apa yang direkomendasikan untuk meningkatkan AOV?",
+      category: "Strategy"
+    }
+  ];
+
+  // Handle AI chat submission
+  const handleAiSubmit = async (questionText = null) => {
+    const question = questionText || aiInput.trim();
+    if (!question) return;
+
+    const userMessage = {
+      id: Date.now(),
+      type: 'user',
+      message: question,
+      timestamp: new Date().toLocaleTimeString()
+    };
+
+    setAiMessages(prev => [...prev, userMessage]);
+    setAiInput("");
+    setIsAiLoading(true);
+
+    try {
+      // Prepare dashboard context
+      const dashboardContext = {
+        analytics: analyticsData,
+        selectedStore,
+        selectedPeriod,
+        salesChartPeriod,
+        promotions: promotions.slice(0, 15), // Send top 15 recommendations
+        salesChartData: salesChartData,
+        activePromotions: getActivePromotions()
+      };
+
+      const response = await fetch('/api/ai/dashboard-insights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: question,
+          context: dashboardContext,
+          conversationHistory: aiMessages.slice(-10) // Send last 10 messages for context
+        })
+      });
+
+      const result = await response.json();
+
+      const aiMessage = {
+        id: Date.now() + 1,
+        type: 'ai',
+        message: result.response || result.error || 'No response received',
+        timestamp: new Date().toLocaleTimeString(),
+        model: result.model,
+        success: result.success
+      };
+
+      setAiMessages(prev => [...prev, aiMessage]);
+
+    } catch (error) {
+      console.error('AI Chat Error:', error);
+      
+      const errorMessage = {
+        id: Date.now() + 1,
+        type: 'ai',
+        message: 'Maaf, terjadi kesalahan saat memproses pertanyaan Anda. Silakan coba lagi.',
+        timestamp: new Date().toLocaleTimeString(),
+        success: false
+      };
+
+      setAiMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
+  // Handle template question click
+  const handleTemplateQuestion = (question) => {
+    handleAiSubmit(question);
+  };
+
   const getFilteredTopProducts = () => {
     let filtered = topProducts;
 
@@ -515,12 +628,6 @@ export default function Dashboard() {
   const activePromotions = getActivePromotions();
   const dummySalesChartData = generateSalesChartData(); // Will be replaced by API data
   const filteredTopProducts = getFilteredTopProducts();
-
-  const handleChatSubmit = (e) => {
-    e.preventDefault();
-    console.log("Chat message:", chatInput);
-    setChatInput("");
-  };
 
   const getPeriodLabel = () => {
     const labels = {
@@ -692,55 +799,150 @@ export default function Dashboard() {
 
         <div className="lg:col-span-1 flex">
           <Card className="flex-1 flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bot className="h-5 w-5" />
-                AI Insights
+                AI Dashboard Insights
               </CardTitle>
-              <Button size="sm" className="bg-blue-500 hover:bg-blue-600">
-                Cek Insight
-              </Button>
+              <p className="text-sm text-muted-foreground">
+                Tanyakan tentang data dashboard Anda
+              </p>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col space-y-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Bot className="h-4 w-4 text-white" />
+              
+              {/* AI Chat Messages */}
+              <div className="flex-1 bg-gray-50 rounded-lg p-4 min-h-[300px] max-h-[400px] overflow-y-auto">
+                {aiMessages.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Bot className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+                    <p className="text-sm text-gray-600 mb-4">
+                      Pilih pertanyaan template atau tanyakan langsung tentang data dashboard Anda
+                    </p>
                   </div>
-                  <p className="text-sm text-blue-900">
-                    {activePromotions.length > 0
-                      ? `You have ${activePromotions.length} active promotions running. Consider monitoring their performance for optimization.`
-                      : "No active promotions detected. Consider launching promotions for products with declining sales to boost revenue."}
-                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {aiMessages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-[80%] p-3 rounded-lg ${
+                            msg.type === 'user'
+                              ? "bg-blue-500 text-white"
+                              : msg.success === false
+                              ? "bg-red-50 text-red-800 border border-red-200"
+                              : "bg-white border"
+                          }`}
+                        >
+                          <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                          <div className="flex items-center justify-between mt-1">
+                            <p className="text-xs opacity-70">{msg.timestamp}</p>
+                            {msg.type === 'ai' && msg.model && (
+                              <p className="text-xs opacity-70">{msg.model}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {isAiLoading && (
+                      <div className="flex justify-start">
+                        <div className="bg-white border p-3 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <p className="text-sm">AI sedang menganalisis data...</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Template Questions */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700">Pertanyaan Template:</p>
+                <div className="grid gap-2">
+                  {templateQuestions.slice(0, 3).map((template) => (
+                    <Button
+                      key={template.id}
+                      variant="outline"
+                      className="h-auto p-2 text-left text-xs justify-start"
+                      onClick={() => handleTemplateQuestion(template.question)}
+                      disabled={isAiLoading}
+                    >
+                      <span className="text-blue-600 mr-2">•</span>
+                      {template.question}
+                    </Button>
+                  ))}
                 </div>
+                
+                {templateQuestions.length > 3 && (
+                  <details className="group">
+                    <summary className="cursor-pointer text-xs text-blue-600 hover:text-blue-800">
+                      Lihat {templateQuestions.length - 3} pertanyaan lainnya...
+                    </summary>
+                    <div className="grid gap-2 mt-2">
+                      {templateQuestions.slice(3).map((template) => (
+                        <Button
+                          key={template.id}
+                          variant="outline"
+                          className="h-auto p-2 text-left text-xs justify-start"
+                          onClick={() => handleTemplateQuestion(template.question)}
+                          disabled={isAiLoading}
+                        >
+                          <span className="text-blue-600 mr-2">•</span>
+                          {template.question}
+                        </Button>
+                      ))}
+                    </div>
+                  </details>
+                )}
               </div>
 
-              <div className="space-y-2 flex-1">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left h-auto p-3 bg-transparent"
-                >
-                  Apa promosi terbaik sekarang?
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left h-auto p-3 bg-transparent"
-                >
-                  Apa promosi sekarang?
-                </Button>
-              </div>
-
-              <form onSubmit={handleChatSubmit} className="flex gap-2">
+              {/* Chat Input */}
+              <form onSubmit={(e) => { e.preventDefault(); handleAiSubmit(); }} className="flex gap-2">
                 <Input
-                  placeholder="Still got question?"
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  className="flex-1"
+                  placeholder="Tanyakan tentang data dashboard..."
+                  value={aiInput}
+                  onChange={(e) => setAiInput(e.target.value)}
+                  className="flex-1 text-sm"
+                  disabled={isAiLoading}
                 />
-                <Button type="submit" size="icon">
-                  <Send className="h-4 w-4" />
+                <Button 
+                  type="submit" 
+                  size="icon"
+                  disabled={isAiLoading || !aiInput.trim()}
+                >
+                  {isAiLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
                 </Button>
               </form>
+
+              {/* Quick Action Buttons */}
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setAiMessages([])}
+                  className="text-xs"
+                  disabled={isAiLoading}
+                >
+                  Clear Chat
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleTemplateQuestion("Berikan ringkasan lengkap dashboard ini")}
+                  className="text-xs"
+                  disabled={isAiLoading}
+                >
+                  Dashboard Summary
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
