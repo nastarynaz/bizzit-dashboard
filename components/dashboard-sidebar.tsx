@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, TrendingUp, Tag, Package, CreditCard, MessageCircle, Home, Server, Bot } from "lucide-react"
+import { BarChart3, TrendingUp, Tag, Package, CreditCard, MessageCircle, Home, Server, Bot, Settings } from "lucide-react"
 import { getVisibleNavigationItems } from "@/lib/sidebar-visibility-config"
 
 import {
@@ -57,6 +57,11 @@ const navigationItems = [
     title: "AI API Testing",
     url: "/ai-api-test",
     icon: Bot,
+  },
+  {
+    title: "API Debug",
+    url: "/api-debug",
+    icon: Settings,
   },
 ]
 

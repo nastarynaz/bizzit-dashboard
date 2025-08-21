@@ -42,7 +42,8 @@ export default function StockManagement() {
         setProductsError(null)
         
         // Build URL with store filter if selected
-        let url = 'http://localhost:5000/api/data/products?limit=2000'
+        const baseUrl = process.env.NEXT_PUBLIC_EXTERNAL_API_BASE_URL || process.env.EXTERNAL_API_BASE_URL || 'http://localhost:5000'
+        let url = `${baseUrl}/api/data/products?limit=2000`
         if (selectedStore !== "all") {
           url += `&id_toko=${selectedStore}`
         }

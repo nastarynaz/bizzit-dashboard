@@ -40,7 +40,8 @@ export default function StockManagement() {
         setIsLoadingProducts(true)
         setProductsError(null)
         
-        const response = await fetch('http://localhost:5000/api/data/products?limit=1000')
+        const baseUrl = process.env.NEXT_PUBLIC_EXTERNAL_API_BASE_URL || process.env.EXTERNAL_API_BASE_URL || 'http://localhost:5000'
+        const response = await fetch(`${baseUrl}/api/data/products?limit=1000`)
         const result = await response.json()
         
         if (result.status === 'success' && result.data) {

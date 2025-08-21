@@ -169,7 +169,7 @@ export default function ExternalAPITestPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">External API Testing</h1>
           <p className="text-muted-foreground">
-            Test integration with Bizzt Recommendation API (localhost:5000)
+            Test integration with Bizzt Recommendation API
           </p>
         </div>
 
