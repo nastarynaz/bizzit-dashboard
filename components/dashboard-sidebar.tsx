@@ -1,9 +1,20 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { BarChart3, TrendingUp, Tag, Package, CreditCard, MessageCircle, Home, Server, Bot, Settings } from "lucide-react"
-import { getVisibleNavigationItems } from "@/lib/sidebar-visibility-config"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  BarChart3,
+  TrendingUp,
+  Tag,
+  Package,
+  CreditCard,
+  MessageCircle,
+  Home,
+  Server,
+  Bot,
+  Settings,
+} from "lucide-react";
+import { getVisibleNavigationItems } from "@/lib/sidebar-visibility-config";
 
 import {
   Sidebar,
@@ -15,7 +26,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 const navigationItems = [
   {
@@ -29,12 +40,12 @@ const navigationItems = [
     icon: TrendingUp,
   },
   {
-    title: "Promotion Management",
+    title: "Manajemen Promosi",
     url: "/promotions",
     icon: Tag,
   },
   {
-    title: "Stock Management",
+    title: "Manajemen Stok",
     url: "/stock",
     icon: Package,
   },
@@ -63,13 +74,13 @@ const navigationItems = [
     url: "/api-debug",
     icon: Settings,
   },
-]
+];
 
 export function DashboardSidebar() {
-  const pathname = usePathname()
-  
+  const pathname = usePathname();
+
   // Get only the visible navigation items based on configuration
-  const visibleNavigationItems = getVisibleNavigationItems(navigationItems)
+  const visibleNavigationItems = getVisibleNavigationItems(navigationItems);
 
   return (
     <Sidebar>
@@ -77,8 +88,10 @@ export function DashboardSidebar() {
         <div className="flex items-center gap-2 px-4 py-4 border-b">
           <BarChart3 className="h-6 w-6 text-blue-600" />
           <div className="flex flex-col">
-            <span className="font-semibold">Minimarket</span>
-            <span className="text-xs text-muted-foreground">Sales Dashboard</span>
+            <span className="font-semibold text-blue-600">DATA Dashboard</span>
+            <span className="text-xs text-muted-foreground">
+              Dapatkan insight terbaru melalui dashboard ini!
+            </span>
           </div>
         </div>
       </SidebarHeader>
@@ -102,5 +115,5 @@ export function DashboardSidebar() {
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>
-  )
+  );
 }

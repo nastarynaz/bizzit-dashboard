@@ -25,35 +25,42 @@ export default function PromotionsPage() {
       try {
         setIsLoadingProducts(true);
         setProductsError(null);
-        
-        const response = await fetch('/api/external/recommendations/top?limit=50');
+
+        const response = await fetch(
+          "/api/external/recommendations/top?limit=50"
+        );
         const result = await response.json();
-        
+
         if (result.success && result.data?.data?.recommendations) {
           // Transform API data - use same logic as overview page
-          const transformedData = result.data.data.recommendations.map((item, index) => ({
-            id: index + 1,
-            product: item.nama_produk || "-",
-            category: item.kategori_produk || "-", 
-            sku: item.kode_sku || "-",
-            normalPrice: item.harga_baseline || "-",
-            normalPriceFormatted: item.harga_baseline_formatted || "-",
-            discountAmount: item.rekomendasi_besaran_persen || "-",
-            discountType: item.rekomendasi_detail || "-",
-            discountPrice: calculateDiscountPrice(item.harga_baseline, item.rekomendasi_besaran_persen),
-            startTime: formatDate(item.start_date),
-            endTime: formatDate(item.end_date),
-            duration: calculateDuration(item.start_date, item.end_date),
-            potentialRevenue: item.rata_rata_uplift_profit_formatted || "-",
-            status: "non aktif", // Default status
-          }));
-          
+          const transformedData = result.data.data.recommendations.map(
+            (item, index) => ({
+              id: index + 1,
+              product: item.nama_produk || "-",
+              category: item.kategori_produk || "-",
+              sku: item.kode_sku || "-",
+              normalPrice: item.harga_baseline || "-",
+              normalPriceFormatted: item.harga_baseline_formatted || "-",
+              discountAmount: item.rekomendasi_besaran_persen || "-",
+              discountType: item.rekomendasi_detail || "-",
+              discountPrice: calculateDiscountPrice(
+                item.harga_baseline,
+                item.rekomendasi_besaran_persen
+              ),
+              startTime: formatDate(item.start_date),
+              endTime: formatDate(item.end_date),
+              duration: calculateDuration(item.start_date, item.end_date),
+              potentialRevenue: item.rata_rata_uplift_profit_formatted || "-",
+              status: "non aktif", // Default status
+            })
+          );
+
           setProducts(transformedData);
         } else {
           setProducts([]);
         }
       } catch (error) {
-        console.error('Error fetching recommendations:', error);
+        console.error("Error fetching recommendations:", error);
         setProductsError(error.message);
         setProducts([]);
       } finally {
@@ -66,23 +73,30 @@ export default function PromotionsPage() {
 
   // Helper function to calculate discount price
   const calculateDiscountPrice = (baselinePrice, discountRate) => {
-    if (!baselinePrice || !discountRate || baselinePrice === "-" || discountRate === "-") {
+    if (
+      !baselinePrice ||
+      !discountRate ||
+      baselinePrice === "-" ||
+      discountRate === "-"
+    ) {
       return "-";
     }
-    
+
     try {
       // Remove "Rp" and commas from formatted price, then convert to number
-      const cleanPrice = typeof baselinePrice === 'string' 
-        ? parseFloat(baselinePrice.replace(/[Rp\s,]/g, ''))
-        : baselinePrice;
-      
+      const cleanPrice =
+        typeof baselinePrice === "string"
+          ? parseFloat(baselinePrice.replace(/[Rp\s,]/g, ""))
+          : baselinePrice;
+
       // Remove "%" from discount rate and convert to decimal
-      const cleanRate = typeof discountRate === 'string'
-        ? parseFloat(discountRate.replace('%', '')) / 100
-        : discountRate;
-      
+      const cleanRate =
+        typeof discountRate === "string"
+          ? parseFloat(discountRate.replace("%", "")) / 100
+          : discountRate;
+
       if (isNaN(cleanPrice) || isNaN(cleanRate)) return "-";
-      
+
       const discountPrice = cleanPrice * (1 - cleanRate);
       return Math.round(discountPrice);
     } catch (error) {
@@ -95,19 +109,19 @@ export default function PromotionsPage() {
     if (!startDate || !endDate || startDate === "-" || endDate === "-") {
       return "-";
     }
-    
+
     try {
       const start = new Date(startDate);
       const end = new Date(endDate);
-      
+
       // Check if dates are valid
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
         return "-";
       }
-      
+
       const diffTime = Math.abs(end - start);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
+
       if (diffDays === 0) return "1 hari";
       if (diffDays === 1) return "1 hari";
       return `${diffDays} hari`;
@@ -119,15 +133,15 @@ export default function PromotionsPage() {
   // Helper function to format date to Indonesian format
   const formatDate = (dateString) => {
     if (!dateString || dateString === "-") return "-";
-    
+
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return "-";
-      
-      return date.toLocaleDateString('id-ID', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric' 
+
+      return date.toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
       });
     } catch (error) {
       return "-";
@@ -136,51 +150,70 @@ export default function PromotionsPage() {
 
   // Generate calendar events from active promotions
   const generateCalendarEvents = () => {
-    const activeProducts = products.filter(product => product.status === "aktif");
+    const activeProducts = products.filter(
+      (product) => product.status === "aktif"
+    );
     const events = [];
-    
-    activeProducts.forEach(product => {
+
+    activeProducts.forEach((product) => {
       // Parse start and end dates
-      const startDate = product.startTime !== "-" ? parseDate(product.startTime) : null;
-      const endDate = product.endTime !== "-" ? parseDate(product.endTime) : null;
-      
-      if (startDate && startDate.getMonth() === currentDate.getMonth() && startDate.getFullYear() === currentDate.getFullYear()) {
+      const startDate =
+        product.startTime !== "-" ? parseDate(product.startTime) : null;
+      const endDate =
+        product.endTime !== "-" ? parseDate(product.endTime) : null;
+
+      if (
+        startDate &&
+        startDate.getMonth() === currentDate.getMonth() &&
+        startDate.getFullYear() === currentDate.getFullYear()
+      ) {
         events.push({
           id: `start-${product.id}`,
           title: `${product.product} (Mulai)`,
           date: startDate.getDate(),
           color: "bg-green-200 text-green-800",
           type: "start",
-          product: product
+          product: product,
         });
       }
-      
-      if (endDate && endDate.getMonth() === currentDate.getMonth() && endDate.getFullYear() === currentDate.getFullYear()) {
+
+      if (
+        endDate &&
+        endDate.getMonth() === currentDate.getMonth() &&
+        endDate.getFullYear() === currentDate.getFullYear()
+      ) {
         events.push({
           id: `end-${product.id}`,
           title: `${product.product} (Selesai)`,
           date: endDate.getDate(),
           color: "bg-red-200 text-red-800",
           type: "end",
-          product: product
+          product: product,
         });
       }
-      
+
       // Show active promotion period
       if (startDate && endDate) {
         const currentYear = currentDate.getFullYear();
         const currentMonth = currentDate.getMonth();
-        
+
         // Check if promotion spans across current month
-        if ((startDate.getFullYear() < currentYear || 
-            (startDate.getFullYear() === currentYear && startDate.getMonth() <= currentMonth)) &&
-            (endDate.getFullYear() > currentYear || 
-            (endDate.getFullYear() === currentYear && endDate.getMonth() >= currentMonth))) {
-          
+        if (
+          (startDate.getFullYear() < currentYear ||
+            (startDate.getFullYear() === currentYear &&
+              startDate.getMonth() <= currentMonth)) &&
+          (endDate.getFullYear() > currentYear ||
+            (endDate.getFullYear() === currentYear &&
+              endDate.getMonth() >= currentMonth))
+        ) {
           // Add event for active promotion in current month
-          const startDay = startDate.getMonth() === currentMonth ? startDate.getDate() : 1;
-          const endDay = endDate.getMonth() === currentMonth ? endDate.getDate() : new Date(currentYear, currentMonth + 1, 0).getDate();
-          
+          const startDay =
+            startDate.getMonth() === currentMonth ? startDate.getDate() : 1;
+          const endDay =
+            endDate.getMonth() === currentMonth
+              ? endDate.getDate()
+              : new Date(currentYear, currentMonth + 1, 0).getDate();
+
           for (let day = startDay; day <= endDay; day++) {
             events.push({
               id: `active-${product.id}-${day}`,
@@ -188,22 +221,22 @@ export default function PromotionsPage() {
               date: day,
               color: "bg-blue-200 text-blue-800",
               type: "active",
-              product: product
+              product: product,
             });
           }
         }
       }
     });
-    
+
     return events;
   };
 
   // Helper function to parse Indonesian date format (DD/MM/YYYY)
   const parseDate = (dateString) => {
     if (!dateString || dateString === "-") return null;
-    
+
     try {
-      const parts = dateString.split('/');
+      const parts = dateString.split("/");
       if (parts.length === 3) {
         const day = parseInt(parts[0], 10);
         const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
@@ -218,19 +251,19 @@ export default function PromotionsPage() {
 
   const toggleStatus = (productId) => {
     // Find the product to get current status
-    const product = products.find(p => p.id === productId);
+    const product = products.find((p) => p.id === productId);
     if (!product) return;
-    
+
     const currentStatus = product.status;
     const newStatus = currentStatus === "aktif" ? "non aktif" : "aktif";
     const action = newStatus === "aktif" ? "mengaktifkan" : "menonaktifkan";
-    
+
     // Show confirmation dialog
     const confirmed = window.confirm(
       `Apakah Anda yakin ingin ${action} promosi untuk "${product.product}"?\n\n` +
-      `Status akan berubah dari "${currentStatus}" menjadi "${newStatus}".`
+        `Status akan berubah dari "${currentStatus}" menjadi "${newStatus}".`
     );
-    
+
     // Only update if user confirmed
     if (confirmed) {
       setProducts(
@@ -334,15 +367,19 @@ export default function PromotionsPage() {
           !isCurrentMonth ? "text-gray-300 bg-gray-50" : "bg-white"
         } ${isToday ? "bg-blue-50 border-blue-200" : ""}`}
       >
-        <div className={`text-sm font-medium mb-1 ${isToday ? "text-blue-600 font-bold" : ""}`}>
+        <div
+          className={`text-sm font-medium mb-1 ${
+            isToday ? "text-blue-600 font-bold" : ""
+          }`}
+        >
           {dayNumber}
         </div>
         <div className="space-y-1">
           {dayEvents.slice(0, 3).map((event, index) => (
-            <div 
-              key={event.id} 
+            <div
+              key={event.id}
               className={`text-xs p-1 rounded ${event.color} truncate`}
-              title={`${event.title} - ${event.product?.category || ''}`}
+              title={`${event.title} - ${event.product?.category || ""}`}
             >
               {event.title}
             </div>
@@ -372,8 +409,8 @@ export default function PromotionsPage() {
         <div className="text-center py-8">
           <p className="text-red-500 mb-2">Error loading recommendations:</p>
           <p className="text-sm text-gray-600 mb-4">{productsError}</p>
-          <Button 
-            onClick={() => window.location.reload()} 
+          <Button
+            onClick={() => window.location.reload()}
             variant="outline"
             size="sm"
           >
@@ -437,9 +474,7 @@ export default function PromotionsPage() {
           <tbody>
             {productList.map((product, index) => (
               <tr key={product.id} className="border-b hover:bg-muted/50">
-                <td className="p-3 text-sm">
-                  {product.sku}
-                </td>
+                <td className="p-3 text-sm">{product.sku}</td>
                 <td className="p-3">
                   <div>
                     <div className="font-medium">{product.product}</div>
@@ -454,7 +489,9 @@ export default function PromotionsPage() {
                 </td>
                 <td className="p-3 text-sm">{product.discountType}</td>
                 <td className="p-3 text-sm font-medium text-blue-600">
-                  {product.discountPrice === "-" ? "-" : formatCurrency(product.discountPrice)}
+                  {product.discountPrice === "-"
+                    ? "-"
+                    : formatCurrency(product.discountPrice)}
                 </td>
                 <td className="p-3 text-sm">{product.startTime}</td>
                 <td className="p-3 text-sm">{product.endTime}</td>
@@ -511,7 +548,12 @@ export default function PromotionsPage() {
           >
             Kalender Promosi
           </TabsTrigger>
-          <TabsTrigger value="active">Promosi Aktif</TabsTrigger>
+          <TabsTrigger
+            value="active"
+            className="data-[state=active]:bg-blue-500 data-[state=active]:text-white"
+          >
+            Promosi Aktif
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="recommendations" className="space-y-4">
